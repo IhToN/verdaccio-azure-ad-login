@@ -136,6 +136,10 @@ export default class AzureAPI {
   }
 
   public decodeUsernameToEmail(username: string): string {
+    if (username.includes('@')) {
+      return username;
+    }
+
     const pos = username.lastIndexOf('..');
     if (pos === -1) {
       if (this.organization_domain) {
