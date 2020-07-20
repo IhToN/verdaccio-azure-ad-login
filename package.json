@@ -1,6 +1,6 @@
 {
   "name": "verdaccio-azure-ad-login",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Let your users authenticate into Verdaccio using Azure AD OAuth",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
