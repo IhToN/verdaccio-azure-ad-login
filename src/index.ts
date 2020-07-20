@@ -1,7 +1,16 @@
-import { PluginOptions, AuthCallback, IPluginAuth, Logger } from '@verdaccio/types';
+import {
+  PluginOptions,
+  AuthCallback,
+  IPluginAuth,
+  Logger,
+  RemoteUser,
+  PackageAccess,
+  AuthAccessCallback,
+} from '@verdaccio/types';
 import { getUnauthorized } from '@verdaccio/commons-api';
 
 import { AzureConfig } from '../types/AzureConfig';
+import { UnpublishPackageAccess } from '../types/UnpublishPackageAccess';
 
 import AzureAPI from './AzureAPI';
 import { intersection } from './helpers';
@@ -18,6 +27,7 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
     this.api = new AzureAPI(config);
     return this;
   }
+
   /**
    * Authenticate an user.
    * @param user user to log
@@ -58,5 +68,56 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
         this.logger.error({ error }, 'Error authentication in Azure >> @{error}');
         cb(getUnauthorized('bad username/password, access denied'), false);
       });
+  }
+
+  /**
+   * Triggered on each access request
+   * @param user
+   * @param pkg
+   * @param cb
+   */
+  public allow_access(user: RemoteUser, pkg: PackageAccess, cb: AuthAccessCallback): void {
+    const groupsIntersection = intersection(user.groups, pkg?.access || []);
+    if (pkg?.access?.includes[user.name || ''] || groupsIntersection.length > 0) {
+      this.logger.debug({ name: user.name }, '@{name} has been granted to access');
+      cb(null, true);
+    } else {
+      this.logger.error({ name: user.name }, '@{name} is not allowed to publish this package');
+      cb('error, try again', false);
+    }
+  }
+
+  /**
+   * Triggered on each publish request
+   * @param user
+   * @param pkg
+   * @param cb
+   */
+  public allow_publish(user: RemoteUser, pkg: PackageAccess, cb: AuthAccessCallback): void {
+    const groupsIntersection = intersection(user.groups, pkg?.publish || []);
+    if (pkg?.publish?.includes[user.name || ''] || groupsIntersection.length > 0) {
+      this.logger.debug({ name: user.name }, '@{name} has been granted to publish');
+      cb(null, true);
+    } else {
+      this.logger.error({ name: user.name }, '@{name} is not allowed to publish this package');
+      cb('error, try again', false);
+    }
+  }
+
+  /**
+   * Triggered on each unpublish request
+   * @param user
+   * @param pkg
+   * @param cb
+   */
+  public allow_unpublish(user: RemoteUser, pkg: PackageAccess & UnpublishPackageAccess, cb: AuthAccessCallback): void {
+    const groupsIntersection = intersection(user.groups, pkg?.unpublish || []);
+    if (pkg?.unpublish?.includes[user.name || ''] || groupsIntersection.length > 0) {
+      this.logger.debug({ name: user.name }, '@{name} has been granted to publish');
+      cb(null, true);
+    } else {
+      this.logger.error({ name: user.name }, '@{name} is not allowed to publish this package');
+      cb('error, try again', false);
+    }
   }
 }
