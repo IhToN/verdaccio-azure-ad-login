@@ -46,7 +46,9 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
           );
 
           if (groupsIntersection.length > 0) {
-            cb(null, [...this.api.BASE_GROUPS, ...groupsIntersection]);
+            // remove duplicated
+            const groups = Array.from(new Set([...this.api.BASE_GROUPS, ...groupsIntersection]));
+            cb(null, groups);
           } else {
             cb(getUnauthorized('the user does not have enough privileges'), false);
           }

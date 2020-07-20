@@ -114,7 +114,7 @@ export default class AzureAPI {
     return new Promise((resolve) => {
       let memberOf = this.BASE_GROUPS;
       if (groups && groups.length > 0) {
-        memberOf = [...memberOf, ...groups];
+        memberOf = Array.from(new Set([...memberOf, ...groups]));
       }
       resolve(memberOf);
     });
