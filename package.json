@@ -1,6 +1,6 @@
 {
   "name": "verdaccio-azure-ad-login",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Let your users authenticate into Verdaccio using Azure AD OAuth",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -12,22 +12,22 @@
   },
   "dependencies": {
     "@verdaccio/commons-api": "^9.7.1",
-    "axios": "^0.19.2"
+    "axios": "^0.21.1"
   },
   "devDependencies": {
-    "@types/express": "^4.17.7",
-    "@types/jest": "^26.0.4",
-    "@types/node": "^14.0.23",
-    "@typescript-eslint/eslint-plugin": "^3.6.1",
+    "@types/express": "^4.17.11",
+    "@types/jest": "^26.0.20",
+    "@types/node": "^14.14.31",
+    "@typescript-eslint/eslint-plugin": "^3.10.1",
     "@verdaccio/babel-preset": "^9.7.1",
     "@verdaccio/eslint-config": "^9.3.2",
-    "@verdaccio/types": "^9.7.0",
-    "eslint": "^7.4.0",
-    "jest": "^26.1.0",
-    "prettier": "^2.0.5",
+    "@verdaccio/types": "^9.7.2",
+    "eslint": "^7.0.0",
+    "jest": "^26.6.3",
+    "prettier": "^2.2.1",
     "standard-version": "^8.0.2",
-    "typescript": "^3.9.6",
-    "verdaccio": "^4.7.2"
+    "typescript": "^3.9.9",
+    "verdaccio": "^4.11.0"
   },
   "keywords": [
     "verdaccio,azure,active,directory,oauth,login"
