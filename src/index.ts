@@ -83,7 +83,7 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
       cb(null, true);
     } else {
       this.logger.error({ name: user.name }, '@{name} is not allowed to publish this package');
-      cb('error, try again', false);
+      cb(getUnauthorized('error, try again'), false);
     }
   }
 
@@ -100,7 +100,7 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
       cb(null, true);
     } else {
       this.logger.error({ name: user.name }, '@{name} is not allowed to publish this package');
-      cb('error, try again', false);
+      cb(getUnauthorized('error, try again'), false);
     }
   }
 
@@ -113,11 +113,11 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
   public allow_unpublish(user: RemoteUser, pkg: PackageAccess & UnpublishPackageAccess, cb: AuthAccessCallback): void {
     const groupsIntersection = intersection(user.groups, pkg?.unpublish || []);
     if (pkg?.unpublish?.includes[user.name || ''] || groupsIntersection.length > 0) {
-      this.logger.debug({ name: user.name }, '@{name} has been granted to publish');
+      this.logger.debug({ name: user.name }, '@{name} has been granted to unpublish');
       cb(null, true);
     } else {
-      this.logger.error({ name: user.name }, '@{name} is not allowed to publish this package');
-      cb('error, try again', false);
+      this.logger.error({ name: user.name }, '@{name} is not allowed to unpublish this package');
+      cb(getUnauthorized('error, try again'), false);
     }
   }
 }

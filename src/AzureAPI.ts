@@ -70,7 +70,11 @@ export default class AzureAPI {
     try {
       return await axios(url, options).then((res) => res.data);
     } catch (error) {
-      throw new Error('Failed requesting Azure AD access token: ' + error.message);
+      const errorMsg = error.response?.data?.error_description || error.message || 'Unknown';
+      if(error.response?.data) {
+        console.debug(error.response.data)
+      }
+      throw new Error('Failed requesting Azure AD access token: ' + errorMsg);
     }
   }
 
