@@ -36,9 +36,10 @@
   "repository": "IhToN/verdaccio-azure-ad-login",
   "author": "Antonio Terrero Algaba <atalgaba@gmail.com>",
   "scripts": {
-    "release": "standard-version -a",
     "start": "verdaccio -c ./config/dev.yaml",
     "build": "npm run build:types && npm run build:js",
+    "release": "standard-version -a",
+    "deploy": "git push --follow-tags origin master && npm publish --registry=https://registry.npmjs.org",
     "build:js": "babel src/ --out-dir lib --extensions \".ts,.tsx\"",
     "build:types": "tsc --emitDeclarationOnly",
     "test": "jest",
