@@ -1,6 +1,6 @@
 {
   "name": "verdaccio-azure-ad-login",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Let your users authenticate into Verdaccio using Azure AD OAuth",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -22,7 +22,7 @@
     "@verdaccio/babel-preset": "^9.7.1",
     "@verdaccio/eslint-config": "^9.3.2",
     "@verdaccio/types": "^9.7.2",
-    "eslint": "^7.0.0",
+    "eslint": "^6.8.0",
     "jest": "^26.6.3",
     "prettier": "^2.2.1",
     "standard-version": "^8.0.2",
@@ -37,7 +37,7 @@
   "author": "Antonio Terrero Algaba <atalgaba@gmail.com>",
   "scripts": {
     "release": "standard-version -a",
-    "start": "verdaccio -c ./config/config.yaml",
+    "start": "verdaccio -c ./config/dev.yaml",
     "build": "npm run build:types && npm run build:js",
     "build:js": "babel src/ --out-dir lib --extensions \".ts,.tsx\"",
     "build:types": "tsc --emitDeclarationOnly",
