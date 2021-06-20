@@ -7,4 +7,5 @@ export interface AzureConfig extends Config {
   organization_domain: string; // optional
   scope: string; // optional
   allow_groups: Array<string>; // optional
+  group_name_key: string; // optional
 }

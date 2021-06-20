@@ -21,6 +21,7 @@ export default class AzureAPI {
   private readonly scope: string;
   private readonly organization_domain: string;
   public readonly allow_groups: Array<string>;
+  private readonly group_name_key: string;
 
   public readonly BASE_GROUPS = ['azuread'];
 
@@ -31,6 +32,7 @@ export default class AzureAPI {
     this.allow_groups = config.allow_groups || [];
     this.scope = BASE_SCOPE + (config.scope ? ` ${config.scope}` : '');
     this.organization_domain = config.organization_domain || '';
+    this.group_name_key = config.group_name_key || 'mailNickname';
   }
 
   public get apiUrl(): string {
@@ -72,7 +74,7 @@ export default class AzureAPI {
     } catch (error) {
       const errorMsg = error.response?.data?.error_description || error.message || 'Unknown';
       if(error.response?.data) {
-        console.debug(error.response.data)
+        console.debug(error.response.data);
       }
       throw new Error('Failed requesting Azure AD access token: ' + errorMsg);
     }
@@ -111,7 +113,7 @@ export default class AzureAPI {
 
     return axios(url, options)
       .then((res) => res.data?.value || [])
-      .then((groups) => groups.map((el) => el.mailNickname));
+      .then((groups) => groups.map((el) => el[this.group_name_key]));
   }
 
   private async getFinalUserGroups(groups: Array<string> | undefined = undefined): Promise<Array<string>> {
