@@ -48,6 +48,7 @@ auth:
 #    allow_groups:
 #      - "developer"
 #      - "azuread"
+    group_name_key: ""
 
 # a list of other known repositories we can talk to
 uplinks:
