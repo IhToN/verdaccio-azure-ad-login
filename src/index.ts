@@ -28,6 +28,8 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
     return this;
   }
 
+  // todo: customize error message for addUser
+
   /**
    * Authenticate an user.
    * @param user user to log
@@ -35,7 +37,7 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
    * @param cb callback function
    */
   public authenticate(user: string, password: string, cb: AuthCallback): void {
-    this.logger.debug({ user, password }, 'Trying to authenticate: @{user} @{password}');
+    this.logger.debug({ user, password }, 'Trying to authenticate: @{user}');
 
     this.api
       .requestToken(this.api.decodeUsernameToEmail(user), password)
@@ -82,7 +84,7 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
       this.logger.debug({ name: user.name }, '@{name} has been granted to access');
       cb(null, true);
     } else {
-      this.logger.error({ name: user.name }, '@{name} is not allowed to publish this package');
+      this.logger.error({ name: user.name }, '@{name} is not allowed to access this package');
       cb(getUnauthorized('error, try again'), false);
     }
   }
