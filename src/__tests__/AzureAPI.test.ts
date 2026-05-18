@@ -1,10 +1,10 @@
-import axios from 'axios';
+import axios, { type AxiosStatic } from 'axios';
 import AzureAPI from '../AzureAPI';
-import { AzureConfig } from '../../types/AzureConfig';
+import type { AzureConfig } from '../../types/AzureConfig';
 
 jest.mock('axios');
 
-const { AxiosError } = jest.requireActual<typeof import('axios')>('axios');
+const { AxiosError } = jest.requireActual<AxiosStatic>('axios');
 
 const mockedAxios = axios as jest.MockedFunction<typeof axios>;
 

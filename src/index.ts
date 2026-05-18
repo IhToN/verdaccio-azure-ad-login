@@ -1,4 +1,4 @@
-import {
+import type {
   PluginOptions,
   AuthCallback,
   IPluginAuth,
@@ -9,8 +9,8 @@ import {
 } from '@verdaccio/types';
 import { getUnauthorized } from '@verdaccio/commons-api';
 
-import { AzureConfig } from '../types/AzureConfig';
-import { UnpublishPackageAccess } from '../types/UnpublishPackageAccess';
+import type { AzureConfig } from '../types/AzureConfig';
+import type { UnpublishPackageAccess } from '../types/UnpublishPackageAccess';
 
 import AzureAPI from './AzureAPI';
 import { intersection } from './helpers';
@@ -56,37 +56,39 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
    * @param password provided password
    * @param cb callback function
    */
-  public async authenticate(user: string, password: string, cb: AuthCallback): Promise<void> {
+  public authenticate(user: string, password: string, cb: AuthCallback): void {
     this.logger.debug({ user }, 'Trying to authenticate: @{user}');
 
-    try {
-      const token = await this.api.requestToken(this.api.decodeUsernameToEmail(user), password);
-      this.logger.debug({ token }, 'MS Token Received >> @{token}');
+    void (async () => {
+      try {
+        const token = await this.api.requestToken(this.api.decodeUsernameToEmail(user), password);
+        this.logger.debug({ token }, 'MS Token Received >> @{token}');
 
-      const userGroups = await this.api.requestUserGroups(token.access_token);
-      this.logger.debug({ userGroups }, 'User is member of these groups >> @{userGroups}');
+        const userGroups = await this.api.requestUserGroups(token.access_token);
+        this.logger.debug({ userGroups }, 'User is member of these groups >> @{userGroups}');
 
-      if (this.api.allow_groups.length === 0) {
-        cb(null, userGroups);
-      } else {
-        const groupsIntersection = intersection(userGroups, this.api.allow_groups);
-        this.logger.debug(
-          { groupsIntersection },
-          'Intersection between User Groups and Allowed Groups >> @{groupsIntersection}'
-        );
-
-        if (groupsIntersection.length > 0) {
-          // remove duplicated
-          const groups = Array.from(new Set([...this.api.BASE_GROUPS, ...groupsIntersection]));
-          cb(null, groups);
+        if (this.api.allow_groups.length === 0) {
+          cb(null, userGroups);
         } else {
-          cb(getUnauthorized('the user does not have enough privileges'), false);
+          const groupsIntersection = intersection(userGroups, this.api.allow_groups);
+          this.logger.debug(
+            { groupsIntersection },
+            'Intersection between User Groups and Allowed Groups >> @{groupsIntersection}'
+          );
+
+          if (groupsIntersection.length > 0) {
+            // remove duplicated
+            const groups = Array.from(new Set([...this.api.BASE_GROUPS, ...groupsIntersection]));
+            cb(null, groups);
+          } else {
+            cb(getUnauthorized('the user does not have enough privileges'), false);
+          }
         }
+      } catch (error) {
+        this.logger.error({ error }, 'Error authentication in Azure >> @{error}');
+        cb(getUnauthorized('bad username/password, access denied'), false);
       }
-    } catch (error) {
-      this.logger.error({ error }, 'Error authentication in Azure >> @{error}');
-      cb(getUnauthorized('bad username/password, access denied'), false);
-    }
+    })();
   }
 
   /**

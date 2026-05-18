@@ -2,8 +2,8 @@ import querystring from 'querystring';
 
 import axios from 'axios';
 
-import { AzureConfig } from '../types/AzureConfig';
-import { AzureOAuth } from '../types/AzureOAuth';
+import type { AzureConfig } from '../types/AzureConfig';
+import type { AzureOAuth } from '../types/AzureOAuth';
 
 const BASE_SCOPE = 'user.read openid profile offline_access';
 
@@ -74,10 +74,7 @@ export default class AzureAPI {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const errorMsg = error.response?.data?.error_description || error.message || 'Unknown';
-        if (error.response?.data) {
-          console.debug(error.response.data);
-        }
-        throw new Error('Failed requesting Azure AD access token: ' + errorMsg);
+        throw new Error('Failed requesting Azure AD access token: ' + errorMsg, { cause: error });
       }
       throw error;
     }

@@ -1,8 +1,8 @@
 import AuthCustomPlugin from '../index';
 import AzureAPI from '../AzureAPI';
-import { Logger, PackageAccess, RemoteUser, PluginOptions } from '@verdaccio/types';
-import { AzureConfig } from '../../types/AzureConfig';
-import { UnpublishPackageAccess } from '../../types/UnpublishPackageAccess';
+import type { Logger, PackageAccess, RemoteUser, PluginOptions } from '@verdaccio/types';
+import type { AzureConfig } from '../../types/AzureConfig';
+import type { UnpublishPackageAccess } from '../../types/UnpublishPackageAccess';
 
 jest.mock('../AzureAPI');
 
@@ -47,7 +47,7 @@ function callAllow(
   pkg: PackageAccess & UnpublishPackageAccess
 ): Promise<boolean> {
   return new Promise((resolve, reject) => {
-    (plugin[method] as Function)(user, pkg, (err: Error | null, result: boolean) => {
+    (plugin[method] as (u: RemoteUser, p: PackageAccess & UnpublishPackageAccess, cb: (err: Error | null, result: boolean) => void) => void)(user, pkg, (err: Error | null, result: boolean) => {
       if (err) {
         reject(new Error(err.message));
       } else {

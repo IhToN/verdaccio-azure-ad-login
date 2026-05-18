@@ -1,4 +1,4 @@
-import { Config } from '@verdaccio/types';
+import type { Config } from '@verdaccio/types';
 
 export interface AzureConfig extends Config {
   tenant: string; // required
