@@ -8,4 +8,12 @@ module.exports = {
   collectCoverage: true,
   coveragePathIgnorePatterns: ['node_modules'],
   testPathIgnorePatterns: ['node_modules', '\\.claude/'],
+  coverageThreshold: {
+    global: {
+      lines: 80,
+      functions: 80,
+      branches: 80,
+      statements: 80,
+    },
+  },
 };

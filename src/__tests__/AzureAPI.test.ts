@@ -68,6 +68,14 @@ describe('AzureAPI.requestToken()', () => {
     );
   });
 
+  it('wraps AxiosError without response data using error.message', async () => {
+    const axiosError = new AxiosError('Network Error', 'ERR_NETWORK', {} as any, null, undefined);
+    mockedAxios.mockRejectedValueOnce(axiosError);
+    jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
+
+    await expect(api.requestToken('u', 'p')).rejects.toThrow(/Failed requesting Azure AD access token:.*Network Error/);
+  });
+
   it('rethrows non-Axios errors unchanged', async () => {
     mockedAxios.mockRejectedValueOnce(new Error('socket hang up'));
 
