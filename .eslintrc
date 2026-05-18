@@ -1,6 +1,0 @@
-{
-  "extends": ["@verdaccio"],
-  "rules": {
-    "@typescript-eslint/ban-ts-ignore": "off"
-  }
-}
