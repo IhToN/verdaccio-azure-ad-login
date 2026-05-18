@@ -6,7 +6,7 @@ module.exports = {
   },
   verbose: true,
   collectCoverage: true,
-  coveragePathIgnorePatterns: ['node_modules'],
+  coveragePathIgnorePatterns: ['node_modules', 'lib'],
   testPathIgnorePatterns: ['node_modules', '\\.claude/'],
   coverageThreshold: {
     global: {
