@@ -30,7 +30,12 @@
     "verdaccio": "^6.7.1"
   },
   "overrides": {
-    "@babel/core": "^7.28.0"
+    "@babel/core": "^7.28.0",
+    "@babel/runtime": ">=7.26.10",
+    "minimatch": "^3.1.4",
+    "semver": ">=5.7.2",
+    "yaml": ">=2.0.0",
+    "hosted-git-info": ">=2.8.9"
   },
   "keywords": [
     "verdaccio,azure,active,directory,oauth,login"
