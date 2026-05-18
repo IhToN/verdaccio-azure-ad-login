@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@verdaccio/commons-api": "^9.7.1",
-    "axios": "^0.21.1",
+    "axios": "^0.31.1",
     "querystring": "^0.2.1"
   },
   "devDependencies": {
