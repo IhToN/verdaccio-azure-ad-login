@@ -28,7 +28,7 @@
     "prettier": "^2.2.1",
     "standard-version": "^8.0.2",
     "typescript": "^3.9.9",
-    "verdaccio": "^4.11.0"
+    "verdaccio": "^6.7.1"
   },
   "keywords": [
     "verdaccio,azure,active,directory,oauth,login"
