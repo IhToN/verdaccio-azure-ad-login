@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.2](https://github.com/IhToN/verdaccio-azure-ad-login/compare/v1.1.1...v1.1.2) (2026-05-18)
+
+
+### Bug Fixes
+
+* **acl:** fix per-user package access control and add descriptive rejection messages ([bd0be27](https://github.com/IhToN/verdaccio-azure-ad-login/commit/bd0be274081b67a450c139ac184d5aead84758ca))
+* **auth:** add config validation, startup log, async/await conversion ([7ef2906](https://github.com/IhToN/verdaccio-azure-ad-login/commit/7ef29068edff19fa1a4940ade546fc67d58f4a9e))
+
 ### [1.1.1](https://github.com/IhToN/verdaccio-azure-ad-login/compare/v1.1.0...v1.1.1) (2021-09-24)
 
 ## [1.1.0](https://github.com/IhToN/verdaccio-azure-ad-login/compare/v1.0.5...v1.1.0) (2021-07-07)
