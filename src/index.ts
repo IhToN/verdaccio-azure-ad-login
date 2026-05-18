@@ -24,6 +24,26 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
 
   public constructor(config: AzureConfig, options: PluginOptions<AzureConfig>) {
     this.logger = options.logger;
+
+    // Validate required fields — fail at startup, not at first login (D-02, D-03, D-04)
+    const missing = (['tenant', 'client_id', 'client_secret'] as const).filter(
+      (key) => !config[key] || config[key].trim() === ''
+    );
+    if (missing.length > 0) {
+      throw new Error(`verdaccio-azure-ad-login: Missing required config fields: ${missing.join(', ')}`);
+    }
+
+    // Startup config log — operational visibility with secret redacted (FEAT-02 / Discretion)
+    this.logger.info(
+      {
+        tenant: config.tenant,
+        client_id: config.client_id,
+        client_secret: '***',
+        allow_groups: config.allow_groups?.length ? config.allow_groups : undefined,
+      },
+      'verdaccio-azure-ad-login: config loaded'
+    );
+
     this.api = new AzureAPI(config);
     return this;
   }
@@ -36,40 +56,37 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
    * @param password provided password
    * @param cb callback function
    */
-  public authenticate(user: string, password: string, cb: AuthCallback): void {
-    this.logger.debug({ user, password }, 'Trying to authenticate: @{user}');
+  public async authenticate(user: string, password: string, cb: AuthCallback): Promise<void> {
+    this.logger.debug({ user }, 'Trying to authenticate: @{user}');
 
-    this.api
-      .requestToken(this.api.decodeUsernameToEmail(user), password)
-      .then((token) => {
-        this.logger.debug({ token }, 'MS Token Received >> @{token}');
-        return this.api.requestUserGroups(token.access_token);
-      })
-      .then((userGroups) => {
-        this.logger.debug({ userGroups }, 'User is member of these groups >> @{userGroups}');
+    try {
+      const token = await this.api.requestToken(this.api.decodeUsernameToEmail(user), password);
+      this.logger.debug({ token }, 'MS Token Received >> @{token}');
 
-        if (this.api.allow_groups.length === 0) {
-          cb(null, userGroups);
+      const userGroups = await this.api.requestUserGroups(token.access_token);
+      this.logger.debug({ userGroups }, 'User is member of these groups >> @{userGroups}');
+
+      if (this.api.allow_groups.length === 0) {
+        cb(null, userGroups);
+      } else {
+        const groupsIntersection = intersection(userGroups, this.api.allow_groups);
+        this.logger.debug(
+          { groupsIntersection },
+          'Intersection between User Groups and Allowed Groups >> @{groupsIntersection}'
+        );
+
+        if (groupsIntersection.length > 0) {
+          // remove duplicated
+          const groups = Array.from(new Set([...this.api.BASE_GROUPS, ...groupsIntersection]));
+          cb(null, groups);
         } else {
-          const groupsIntersection = intersection(userGroups, this.api.allow_groups);
-          this.logger.debug(
-            { groupsIntersection },
-            'Intersection between User Groups and Allowed Groups >> @{groupsIntersection}'
-          );
-
-          if (groupsIntersection.length > 0) {
-            // remove duplicated
-            const groups = Array.from(new Set([...this.api.BASE_GROUPS, ...groupsIntersection]));
-            cb(null, groups);
-          } else {
-            cb(getUnauthorized('the user does not have enough privileges'), false);
-          }
+          cb(getUnauthorized('the user does not have enough privileges'), false);
         }
-      })
-      .catch((error) => {
-        this.logger.error({ error }, 'Error authentication in Azure >> @{error}');
-        cb(getUnauthorized('bad username/password, access denied'), false);
-      });
+      }
+    } catch (error) {
+      this.logger.error({ error }, 'Error authentication in Azure >> @{error}');
+      cb(getUnauthorized('bad username/password, access denied'), false);
+    }
   }
 
   /**
