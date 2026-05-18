@@ -7,4 +7,5 @@ module.exports = {
   verbose: true,
   collectCoverage: true,
   coveragePathIgnorePatterns: ['node_modules'],
+  testPathIgnorePatterns: ['node_modules', '\\.claude/'],
 };

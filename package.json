@@ -38,9 +38,6 @@
   "license": "MIT",
   "repository": "IhToN/verdaccio-azure-ad-login",
   "author": "Antonio Terrero Algaba <atalgaba@gmail.com>",
-  "overrides": {
-    "babel-preset-current-node-syntax": "1.0.1"
-  },
   "scripts": {
     "start": "verdaccio -c ./config/dev.yaml",
     "build": "npm run build:types && npm run build:js",
