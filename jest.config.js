@@ -1,5 +1,5 @@
 module.exports = {
-  name: 'verdaccio-<%= name %>',
+  name: 'verdaccio-azure-ad-login',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
