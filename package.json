@@ -40,7 +40,10 @@
     "verdaccio,azure,active,directory,oauth,login"
   ],
   "license": "MIT",
-  "repository": "IhToN/verdaccio-azure-ad-login",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IhToN/verdaccio-azure-ad-login.git"
+  },
   "author": "Antonio Terrero Algaba <atalgaba@gmail.com>",
   "scripts": {
     "start": "verdaccio -c ./config/dev.yaml",
