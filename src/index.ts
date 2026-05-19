@@ -21,6 +21,7 @@ import { intersection } from './helpers';
 export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
   public logger: Logger;
   public api: AzureAPI;
+  private readonly ciMode: boolean;
 
   public constructor(config: AzureConfig, options: PluginOptions<AzureConfig>) {
     this.logger = options.logger;
@@ -38,6 +39,15 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
       throw new Error(`verdaccio-azure-ad-login: Unknown auth_mode '${rawMode}'; expected 'ropc' or 'token'`);
     }
 
+    if (config.ci_mode && config.auth_mode === 'token') {
+      throw new Error(
+        'verdaccio-azure-ad-login: ci_mode and auth_mode: token are mutually exclusive. ' +
+        'Use ci_mode for app-only authentication or auth_mode: token for PAT passthrough.'
+      );
+    }
+
+    this.ciMode = config.ci_mode ?? false;
+
     // Startup config log — operational visibility with secret redacted (FEAT-02 / Discretion)
     this.logger.info(
       {
@@ -46,6 +56,7 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
         client_secret: '***',
         allow_groups: config.allow_groups?.length ? config.allow_groups : undefined,
         auth_mode: config.auth_mode ?? 'ropc',
+        ci_mode: config.ci_mode ?? false,
       },
       'verdaccio-azure-ad-login: config loaded'
     );
@@ -67,6 +78,21 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
 
     void (async () => {
       try {
+        if (this.ciMode) {
+          const groups = await this.api.requestGroupsAppOnly(
+            this.api.decodeUsernameToEmail(user)
+          );
+          this.logger.debug({ groups }, 'CI mode user groups >> @{groups}');
+          const ciPolicy = this.applyGroupPolicy(groups);
+          if (ciPolicy === null) {
+            cb(getUnauthorized('the user does not have enough privileges'), false);
+            return;
+          } else {
+            cb(null, ciPolicy.groups);
+            return;
+          }
+        }
+
         const mode = this.api.auth_mode;
         switch (mode) {
           case 'ropc': {

@@ -64,6 +64,7 @@ beforeEach(() => {
   (mockLogger.warn as jest.Mock).mockClear();
   (mockLogger.error as jest.Mock).mockClear();
 
+  mockApi.prototype.requestGroupsAppOnly = jest.fn().mockResolvedValue(['azuread', 'devs']);
   mockApi.prototype.requestToken = jest.fn().mockResolvedValue({
     access_token: 'mock-token',
     token_type: 'Bearer',
@@ -97,6 +98,13 @@ describe('AuthCustomPlugin constructor', () => {
   it('throws listing all missing fields when multiple required fields absent', () => {
     const bad = { ...config, tenant: '', client_id: '' } as AzureConfig;
     expect(() => new AuthCustomPlugin(bad, options)).toThrow('tenant');
+  });
+
+  it('throws when ci_mode: true and auth_mode: token are both set (5-02-04)', () => {
+    const bad = { ...config, ci_mode: true, auth_mode: 'token' } as AzureConfig;
+    expect(() => new AuthCustomPlugin(bad, options)).toThrow(
+      'ci_mode and auth_mode: token are mutually exclusive'
+    );
   });
 });
 
@@ -185,6 +193,33 @@ describe('AuthCustomPlugin.authenticate()', () => {
       expect.anything(),
       expect.stringContaining('ROPC')
     );
+  });
+
+  it('ci_mode: resolves with groups when allow_groups is empty (5-02-01)', async () => {
+    mockApi.prototype.requestGroupsAppOnly = jest.fn().mockResolvedValue(['azuread', 'devs']);
+    const ciPlugin = new AuthCustomPlugin({ ...config, ci_mode: true } as AzureConfig, options);
+    const result = await callAuthenticate(ciPlugin, 'ci-runner@corp.com', 'ignored-password');
+    expect(result).toEqual(['azuread', 'devs']);
+    expect(mockApi.prototype.requestGroupsAppOnly).toHaveBeenCalledWith('ci-runner@corp.com');
+  });
+
+  it('ci_mode: rejects when no allow_groups intersection (5-02-02)', async () => {
+    mockApi.prototype.requestGroupsAppOnly = jest.fn().mockResolvedValue(['azuread']);
+    Object.defineProperty(mockApi.prototype, 'allow_groups', {
+      get: jest.fn().mockReturnValue(['admins']),
+      configurable: true,
+    });
+    const ciPlugin = new AuthCustomPlugin({ ...config, ci_mode: true } as AzureConfig, options);
+    await expect(callAuthenticate(ciPlugin, 'ci-runner@corp.com', 'whatever')).rejects.toThrow(
+      'the user does not have enough privileges'
+    );
+  });
+
+  it('ci_mode: ignores password (any password accepted) (5-02-03)', async () => {
+    mockApi.prototype.requestGroupsAppOnly = jest.fn().mockResolvedValue(['azuread']);
+    const ciPlugin = new AuthCustomPlugin({ ...config, ci_mode: true } as AzureConfig, options);
+    await expect(callAuthenticate(ciPlugin, 'ci-runner@corp.com', '')).resolves.toEqual(['azuread']);
+    await expect(callAuthenticate(ciPlugin, 'ci-runner@corp.com', 'literally-anything')).resolves.toEqual(['azuread']);
   });
 });
 
