@@ -9,4 +9,5 @@ export interface AzureConfig extends Config {
   allow_groups: Array<string>; // optional
   group_name_key: string; // optional
   auth_mode?: 'ropc' | 'token'; // optional
+  ci_mode?: boolean; // optional
 }
