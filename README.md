@@ -89,6 +89,49 @@ npm login --registry https://your.registry.local
 
 Tokens are cached for 60 seconds per registry node; subsequent `npm install` calls within that window skip the `/me` validation round-trip.
 
+## CI/CD Authentication
+
+When `ci_mode: true` is set, authentication uses the client_credentials grant — the plugin acquires a Graph token using the app registration's own credentials and looks up group memberships by UPN. The npm password is ignored entirely. To use this mode, you must grant the Azure AD application permission documented below.
+
+### Azure AD Setup
+
+1. In the Azure portal, navigate to **App registrations** → your app → **API permissions**.
+2. Click **Add a permission** → **Microsoft Graph** → **Application permissions**.
+3. Search for and add **Directory.Read.All**.
+4. Click **Grant admin consent** for the tenant (required — application permissions are not granted by user consent).
+
+### Verdaccio Config
+
+```yaml
+auth:
+  azure-ad-login:
+    tenant: "<tenant-id>"
+    client_id: "<client-id>"
+    client_secret: "<client-secret>"
+    organization_domain: "<domain>"
+    allow_groups:
+      - "<group-name>"
+    group_name_key: displayName
+    ci_mode: true
+```
+
+### npm login in CI
+
+In `ci_mode`, the UPN (username) is used for Azure AD group lookup. The npm password / `.npmrc` token value is not validated against Azure AD — any non-empty string is accepted.
+
+```bash
+npm set //<registry-url>/:_authToken "ci-placeholder"
+```
+
+Equivalent GitHub Actions step:
+
+```yaml
+- name: Authenticate with Verdaccio
+  run: npm set //${{ vars.REGISTRY_URL }}/:_authToken ${{ secrets.REGISTRY_TOKEN }}
+```
+
+> In `ci_mode`, the token value is not validated against Azure AD. Access control is group-based: the plugin looks up the username's Azure AD group membership using the app-only credentials.
+
 ## How does it work?
 
 User provides a login/password which he uses to perform auth on Azure ActiveDirectory. Verdaccio will grant access to the user only if he is in at least one of the groups from the "allow_groups" option.
