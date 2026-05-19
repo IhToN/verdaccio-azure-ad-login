@@ -66,6 +66,7 @@ The user will be able to log in using `own_email` as the npm username.
 |------|--------------------|--------------|
 | ROPC (default, **deprecated**) | `ropc` | npm password is your Azure AD password. Microsoft is deprecating the Resource Owner Password Credentials flow. |
 | Token passthrough (recommended) | `token` | npm password is a pre-issued Azure AD bearer token. Use `az account get-access-token` to generate one. |
+| CI Mode (app-only) | `ci_mode: true` | npm password is ignored. The plugin uses the app registration's own credentials (client credentials grant) to acquire a Graph token and look up the user's Azure AD group memberships by UPN. |
 
 **Migrating to token mode:**
 
@@ -83,6 +84,8 @@ npm login --registry https://your.registry.local
 # Username: your.name@organization.com
 # Password: <paste token from step 2>
 ```
+
+**CI/CD pipelines:** If you need non-interactive authentication for build agents, use `ci_mode: true` instead — the plugin authenticates with the app registration's own credentials and looks up group memberships by UPN. See [CI/CD Authentication](#cicd-authentication) below.
 
 Tokens are cached for 60 seconds per registry node; subsequent `npm install` calls within that window skip the `/me` validation round-trip.
 
