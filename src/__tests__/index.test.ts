@@ -143,6 +143,49 @@ describe('AuthCustomPlugin.authenticate()', () => {
     );
     expect(mockLogger.error).toHaveBeenCalled();
   });
+
+  it('token mode: resolves with groups when requestUserGroupsForToken succeeds', async () => {
+    Object.defineProperty(mockApi.prototype, 'auth_mode', {
+      get: jest.fn().mockReturnValue('token'),
+      configurable: true,
+    });
+    mockApi.prototype.requestUserGroupsForToken = jest.fn().mockResolvedValue(['azuread', 'devs']);
+    plugin = new AuthCustomPlugin(config, options);
+    const result = await callAuthenticate(plugin, 'user@example.com', 'my-pat-token');
+    expect(result).toEqual(['azuread', 'devs']);
+  });
+
+  it('token mode: rejects with "token is required" when password is empty', async () => {
+    Object.defineProperty(mockApi.prototype, 'auth_mode', {
+      get: jest.fn().mockReturnValue('token'),
+      configurable: true,
+    });
+    plugin = new AuthCustomPlugin(config, options);
+    await expect(callAuthenticate(plugin, 'user@example.com', '')).rejects.toThrow('token is required');
+  });
+
+  it('token mode: rejects with "bad username/password, access denied" when requestUserGroupsForToken throws', async () => {
+    Object.defineProperty(mockApi.prototype, 'auth_mode', {
+      get: jest.fn().mockReturnValue('token'),
+      configurable: true,
+    });
+    mockApi.prototype.requestUserGroupsForToken = jest
+      .fn()
+      .mockRejectedValue(new Error('token does not match user'));
+    plugin = new AuthCustomPlugin(config, options);
+    await expect(callAuthenticate(plugin, 'user@example.com', 'bad-token')).rejects.toThrow(
+      'bad username/password, access denied'
+    );
+  });
+
+  it('ROPC mode: logs a deprecation warning on each authenticate call', async () => {
+    plugin = new AuthCustomPlugin(config, options);
+    await callAuthenticate(plugin, 'user@example.com', 'pw');
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringContaining('ROPC')
+    );
+  });
 });
 
 describe('AuthCustomPlugin.allow_access()', () => {

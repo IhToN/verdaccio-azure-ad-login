@@ -31,6 +31,8 @@ As simple as running:
             # https://docs.microsoft.com/en-us/graph/api/user-getmembergroups?view=graph-rest-1.0&tabs=http
             allow_groups:
               - "developer"
+            # OPTIONAL, authentication mode: 'ropc' (default, deprecated) or 'token' (recommended)
+            auth_mode: "token"
 
 ## Logging In
 
@@ -57,6 +59,32 @@ auth:
 User example email: `own_email@organization.com`\
 Local part: `own_email`\
 The user will be able to log in using `own_email` as the npm username.
+
+## Authentication Modes
+
+| Mode | `auth_mode` value | How it works |
+|------|--------------------|--------------|
+| ROPC (default, **deprecated**) | `ropc` | npm password is your Azure AD password. Microsoft is deprecating the Resource Owner Password Credentials flow. |
+| Token passthrough (recommended) | `token` | npm password is a pre-issued Azure AD bearer token. Use `az account get-access-token` to generate one. |
+
+**Migrating to token mode:**
+
+1. Set `auth_mode: token` in your verdaccio config.
+2. Obtain a token via the Azure CLI:
+
+```bash
+az account get-access-token --resource 00000003-0000-0000-c000-000000000002 --query accessToken -o tsv
+```
+
+3. Use the token as your npm password:
+
+```bash
+npm login --registry https://your.registry.local
+# Username: your.name@organization.com
+# Password: <paste token from step 2>
+```
+
+Tokens are cached for 60 seconds per registry node; subsequent `npm install` calls within that window skip the `/me` validation round-trip.
 
 ## How does it work?
 

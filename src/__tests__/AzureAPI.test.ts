@@ -167,3 +167,110 @@ describe('AzureAPI.decodeUsernameToEmail()', () => {
     expect(apiNoDomain.decodeUsernameToEmail('user')).toBe('user');
   });
 });
+
+describe('AzureAPI.requestUserGroupsForToken()', () => {
+  let api: AzureAPI;
+  const token = 'my-pat-token';
+  const upn = 'alice@corp.com';
+
+  function mockSuccessfulCall(principalName = upn): void {
+    mockedAxios
+      .mockResolvedValueOnce({
+        data: { userPrincipalName: principalName },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      })
+      .mockResolvedValueOnce({
+        data: { value: ['group-id-1'] },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      })
+      .mockResolvedValueOnce({
+        data: { value: [{ mailNickname: 'devs' }] },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers('modern');
+    jest.setSystemTime(0);
+    api = new AzureAPI({
+      tenant: 'test-tenant',
+      client_id: 'test-client-id',
+      client_secret: 'test-secret',
+      allow_groups: ['devs'],
+      group_name_key: 'mailNickname',
+    } as AzureConfig);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('cache miss: calls /me + two graph endpoints, returns groups', async () => {
+    mockSuccessfulCall();
+    const result = await api.requestUserGroupsForToken(token, upn);
+    expect(result).toEqual(['azuread', 'devs']);
+    expect(mockedAxios).toHaveBeenCalledTimes(3);
+  });
+
+  it('cache hit: second call within TTL makes no new axios calls', async () => {
+    mockSuccessfulCall();
+    await api.requestUserGroupsForToken(token, upn);
+    const callsAfterPrime = mockedAxios.mock.calls.length;
+    jest.setSystemTime(59_000);
+    await api.requestUserGroupsForToken(token, upn);
+    expect(mockedAxios.mock.calls.length).toBe(callsAfterPrime);
+  });
+
+  it('TTL expiry: call after 61s makes 3 new axios calls', async () => {
+    mockSuccessfulCall();
+    await api.requestUserGroupsForToken(token, upn);
+    jest.setSystemTime(61_000);
+    mockSuccessfulCall();
+    await api.requestUserGroupsForToken(token, upn);
+    expect(mockedAxios).toHaveBeenCalledTimes(6);
+  });
+
+  it('UPN mismatch: throws "token does not match user" after one /me call', async () => {
+    mockedAxios.mockResolvedValueOnce({
+      data: { userPrincipalName: 'bob@corp.com' },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as any,
+    });
+    await expect(api.requestUserGroupsForToken(token, upn)).rejects.toThrow('token does not match user');
+    expect(mockedAxios).toHaveBeenCalledTimes(1);
+  });
+
+  it('/me HTTP error: throws descriptive error wrapping AxiosError', async () => {
+    const axiosError = new AxiosError('Unauthorized', '401', {} as any, null, {
+      status: 401,
+      data: { error: { message: 'InvalidAuthenticationToken' } },
+      statusText: 'Unauthorized',
+      headers: {},
+      config: {} as any,
+    });
+    mockedAxios.mockRejectedValueOnce(axiosError);
+    jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
+    await expect(api.requestUserGroupsForToken(token, upn)).rejects.toThrow(
+      /Failed validating Azure AD token via \/me/
+    );
+  });
+
+  it('distinct tokens produce separate cache entries (6 total axios calls)', async () => {
+    mockSuccessfulCall();
+    mockSuccessfulCall();
+    await api.requestUserGroupsForToken('token-a', upn);
+    await api.requestUserGroupsForToken('token-b', upn);
+    expect(mockedAxios).toHaveBeenCalledTimes(6);
+  });
+});
