@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/IhToN/verdaccio-azure-ad-login/compare/v1.1.2...v1.2.0) (2026-05-19)
+
+
+### Features
+
+* **auth:** add auth_mode branching, applyGroupPolicy helper, and ROPC deprecation ([5d4d0aa](https://github.com/IhToN/verdaccio-azure-ad-login/commit/5d4d0aa631f2f56f543d8f4d12e64b786cd5214e))
+* **azure-api:** add auth_mode field, token cache, and PAT passthrough methods ([7a7ecab](https://github.com/IhToN/verdaccio-azure-ad-login/commit/7a7ecab24db0bcb3ed8a5036784f4281d856ea9d))
+* **ci:** add GitHub Actions workflow with audit, test, and lint jobs ([de3fc35](https://github.com/IhToN/verdaccio-azure-ad-login/commit/de3fc35822f34d7fe9b7dee1a10270e3ad7ae791))
+
+
+### Bug Fixes
+
+* **deps:** pin transitive vulnerability chains via package.json overrides ([13c1921](https://github.com/IhToN/verdaccio-azure-ad-login/commit/13c192134898d1f38713511ca48b2c6dec49d3f0))
+* **lint:** migrate to ESLint flat config (eslint.config.mjs) ([0f7aee4](https://github.com/IhToN/verdaccio-azure-ad-login/commit/0f7aee462d7b14c7a6cd02bc6ded4cc597a7b907))
+* **tests:** exclude compiled lib/ output from jest coverage collection ([7755bed](https://github.com/IhToN/verdaccio-azure-ad-login/commit/7755bed79e92b6811a2909f182175f6b220615e6))
+
 ### [1.1.2](https://github.com/IhToN/verdaccio-azure-ad-login/compare/v1.1.1...v1.1.2) (2026-05-18)
 
 
