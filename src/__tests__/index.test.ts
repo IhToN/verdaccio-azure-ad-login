@@ -80,6 +80,10 @@ beforeEach(() => {
     get: jest.fn().mockReturnValue(['azuread']),
     configurable: true,
   });
+  Object.defineProperty(mockApi.prototype, 'auth_mode', {
+    get: jest.fn().mockReturnValue('ropc'),
+    configurable: true,
+  });
 });
 
 describe('AuthCustomPlugin constructor', () => {

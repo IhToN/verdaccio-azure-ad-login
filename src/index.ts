@@ -33,6 +33,11 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
       throw new Error(`verdaccio-azure-ad-login: Missing required config fields: ${missing.join(', ')}`);
     }
 
+    const rawMode = config.auth_mode as string | undefined;
+    if (rawMode !== undefined && rawMode !== 'ropc' && rawMode !== 'token') {
+      throw new Error(`verdaccio-azure-ad-login: Unknown auth_mode '${rawMode}'; expected 'ropc' or 'token'`);
+    }
+
     // Startup config log — operational visibility with secret redacted (FEAT-02 / Discretion)
     this.logger.info(
       {
@@ -40,6 +45,7 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
         client_id: config.client_id,
         client_secret: '***',
         allow_groups: config.allow_groups?.length ? config.allow_groups : undefined,
+        auth_mode: config.auth_mode ?? 'ropc',
       },
       'verdaccio-azure-ad-login: config loaded'
     );
@@ -61,27 +67,45 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
 
     void (async () => {
       try {
-        const token = await this.api.requestToken(this.api.decodeUsernameToEmail(user), password);
-        this.logger.debug({ token }, 'MS Token Received >> @{token}');
-
-        const userGroups = await this.api.requestUserGroups(token.access_token);
-        this.logger.debug({ userGroups }, 'User is member of these groups >> @{userGroups}');
-
-        if (this.api.allow_groups.length === 0) {
-          cb(null, userGroups);
-        } else {
-          const groupsIntersection = intersection(userGroups, this.api.allow_groups);
-          this.logger.debug(
-            { groupsIntersection },
-            'Intersection between User Groups and Allowed Groups >> @{groupsIntersection}'
-          );
-
-          if (groupsIntersection.length > 0) {
-            // remove duplicated
-            const groups = Array.from(new Set([...this.api.BASE_GROUPS, ...groupsIntersection]));
-            cb(null, groups);
-          } else {
-            cb(getUnauthorized('the user does not have enough privileges'), false);
+        const mode = this.api.auth_mode;
+        switch (mode) {
+          case 'ropc': {
+            this.logger.warn(
+              {},
+              'verdaccio-azure-ad-login: ROPC auth mode is deprecated; migrate to auth_mode: token using az account get-access-token'
+            );
+            const token = await this.api.requestToken(this.api.decodeUsernameToEmail(user), password);
+            this.logger.debug({ token }, 'MS Token Received >> @{token}');
+            const userGroups = await this.api.requestUserGroups(token.access_token);
+            this.logger.debug({ userGroups }, 'User is member of these groups >> @{userGroups}');
+            const ropcPolicy = this.applyGroupPolicy(userGroups);
+            if (ropcPolicy === null) {
+              cb(getUnauthorized('the user does not have enough privileges'), false);
+            } else {
+              cb(null, ropcPolicy.groups);
+            }
+            break;
+          }
+          case 'token': {
+            if (password.trim() === '') {
+              cb(getUnauthorized('token is required'), false);
+              return;
+            }
+            const groups = await this.api.requestUserGroupsForToken(
+              password,
+              this.api.decodeUsernameToEmail(user)
+            );
+            this.logger.debug({ groups }, 'User is member of these groups >> @{groups}');
+            const tokenPolicy = this.applyGroupPolicy(groups);
+            if (tokenPolicy === null) {
+              cb(getUnauthorized('the user does not have enough privileges'), false);
+            } else {
+              cb(null, tokenPolicy.groups);
+            }
+            break;
+          }
+          default: {
+            cb(getUnauthorized('unknown auth_mode'), false);
           }
         }
       } catch (error) {
@@ -89,6 +113,21 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
         cb(getUnauthorized('bad username/password, access denied'), false);
       }
     })();
+  }
+
+  private applyGroupPolicy(userGroups: string[]): { groups: string[] } | null {
+    if (this.api.allow_groups.length === 0) {
+      return { groups: userGroups };
+    }
+    const groupsIntersection = intersection(userGroups, this.api.allow_groups);
+    this.logger.debug(
+      { groupsIntersection },
+      'Intersection between User Groups and Allowed Groups >> @{groupsIntersection}'
+    );
+    if (groupsIntersection.length > 0) {
+      return { groups: Array.from(new Set([...this.api.BASE_GROUPS, ...groupsIntersection])) };
+    }
+    return null;
   }
 
   /**
