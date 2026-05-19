@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/IhToN/verdaccio-azure-ad-login/compare/v1.2.0...v1.3.0) (2026-05-19)
+
+
+### Features
+
+* **auth:** wire ci_mode early branch into authenticate() ([2941af3](https://github.com/IhToN/verdaccio-azure-ad-login/commit/2941af30c55213c1efcd3da08b375b038c1342bb))
+* **azure-api:** add app-only client_credentials flow for ci_mode ([68573a4](https://github.com/IhToN/verdaccio-azure-ad-login/commit/68573a45fc7efc75b0114021dc3f4862c0c3c44e))
+* **config:** add ci_mode?: boolean to AzureConfig ([562ef45](https://github.com/IhToN/verdaccio-azure-ad-login/commit/562ef4558339644f71889b5bfe53f846a0209365))
+
 ## [1.2.0](https://github.com/IhToN/verdaccio-azure-ad-login/compare/v1.1.2...v1.2.0) (2026-05-19)
 
 
