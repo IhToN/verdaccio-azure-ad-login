@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import querystring from 'querystring';
 
 import axios from 'axios';
@@ -13,6 +14,7 @@ const TOKEN_ENDPOINT = '/oauth2/v2.0/token';
 const GRAPH_URL = 'https://graph.microsoft.com/v1.0';
 const MEMBER_GROUPS_ENDPOINT = '/me/getMemberGroups';
 const GROUPS_INFO_ENDPOINT = '/directoryObjects/getByIds';
+const ME_ENDPOINT = '/me';
 
 export default class AzureAPI {
   private readonly tenant: string;
@@ -22,6 +24,8 @@ export default class AzureAPI {
   private readonly organization_domain: string;
   public readonly allow_groups: Array<string>;
   private readonly group_name_key: string;
+  public readonly auth_mode: 'ropc' | 'token';
+  private readonly tokenCache: Map<string, { groups: string[]; expiresAt: number }>;
 
   public readonly BASE_GROUPS = ['azuread'];
 
@@ -33,6 +37,8 @@ export default class AzureAPI {
     this.scope = BASE_SCOPE + (config.scope ? ` ${config.scope}` : '');
     this.organization_domain = config.organization_domain || '';
     this.group_name_key = config.group_name_key || 'mailNickname';
+    this.auth_mode = config.auth_mode ?? 'ropc';
+    this.tokenCache = new Map();
   }
 
   public get apiUrl(): string {
@@ -139,6 +145,42 @@ export default class AzureAPI {
     const names = await this.getGroupsInformation(token, userGroups);
 
     return await this.getFinalUserGroups(names);
+  }
+
+  private async getUserMe(token: string): Promise<{ userPrincipalName: string }> {
+    const url = this.graphUrl + ME_ENDPOINT;
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + token,
+    };
+    const options = { method: 'GET', headers } as const;
+
+    try {
+      return await axios(url, options).then((res) => res.data);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data?.error?.message || error.message || 'Unknown';
+        throw new Error('Failed validating Azure AD token via /me: ' + errorMsg, { cause: error });
+      }
+      throw error;
+    }
+  }
+
+  public async requestUserGroupsForToken(token: string, upn: string): Promise<string[]> {
+    const key = createHash('sha256').update(token).digest('hex');
+    const cached = this.tokenCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.groups;
+    }
+
+    const me = await this.getUserMe(token);
+    if (me.userPrincipalName.toLowerCase() !== upn.toLowerCase()) {
+      throw new Error('token does not match user');
+    }
+
+    const groups = await this.requestUserGroups(token);
+    this.tokenCache.set(key, { groups, expiresAt: Date.now() + 60_000 });
+    return groups;
   }
 
   public decodeUsernameToEmail(username: string): string {
