@@ -274,3 +274,115 @@ describe('AzureAPI.requestUserGroupsForToken()', () => {
     expect(mockedAxios).toHaveBeenCalledTimes(6);
   });
 });
+
+describe('AzureAPI.requestGroupsAppOnly()', () => {
+  let api: AzureAPI;
+
+  beforeEach(() => {
+    api = new AzureAPI({
+      tenant: 'test-tenant',
+      client_id: 'test-client-id',
+      client_secret: 'test-secret',
+      allow_groups: ['devs'],
+      group_name_key: 'mailNickname',
+    } as AzureConfig);
+  });
+
+  it('success: returns group names using group_name_key (5-01-01)', async () => {
+    mockedAxios
+      .mockResolvedValueOnce({
+        data: { access_token: 'app-token', token_type: 'Bearer', expires_in: 3599 },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      })
+      .mockResolvedValueOnce({
+        data: { value: [{ mailNickname: 'devs', displayName: 'Developers' }] },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+    const result = await api.requestGroupsAppOnly('alice@corp.com');
+
+    expect(mockedAxios).toHaveBeenCalledTimes(2);
+    expect(result).toEqual(['devs']);
+  });
+
+  it('displayName fallback when group_name_key absent (5-01-02)', async () => {
+    mockedAxios
+      .mockResolvedValueOnce({
+        data: { access_token: 'app-token' },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      })
+      .mockResolvedValueOnce({
+        data: { value: [{ displayName: 'Developers' }] },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+    const result = await api.requestGroupsAppOnly('alice@corp.com');
+
+    expect(result).toEqual(['Developers']);
+  });
+
+  it('token acquisition failure throws descriptive error (5-01-03)', async () => {
+    const axiosError = new AxiosError('Unauthorized', '401', {} as any, null, {
+      status: 401,
+      data: { error: 'invalid_client', error_description: 'AADSTS70011: Invalid scope' },
+      statusText: 'Unauthorized',
+      headers: {},
+      config: {} as any,
+    });
+    mockedAxios.mockRejectedValueOnce(axiosError);
+    jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
+
+    await expect(api.requestGroupsAppOnly('alice@corp.com')).rejects.toThrow(
+      /Failed acquiring app-only token/
+    );
+  });
+
+  it('memberOf HTTP error throws descriptive error (5-01-04)', async () => {
+    mockedAxios.mockResolvedValueOnce({
+      data: { access_token: 'app-token' },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as any,
+    });
+    const graphError = new AxiosError('Forbidden', '403', {} as any, null, {
+      status: 403,
+      data: { error: { message: 'Insufficient privileges' } },
+      statusText: 'Forbidden',
+      headers: {},
+      config: {} as any,
+    });
+    mockedAxios.mockRejectedValueOnce(graphError);
+    jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
+
+    await expect(api.requestGroupsAppOnly('alice@corp.com')).rejects.toThrow(
+      /Failed fetching group membership/
+    );
+  });
+
+  it('non-Axios error rethrown unchanged (5-01-05)', async () => {
+    mockedAxios.mockResolvedValueOnce({
+      data: { access_token: 'app-token' },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as any,
+    });
+    const plainError = new Error('Network timeout');
+    mockedAxios.mockRejectedValueOnce(plainError);
+
+    await expect(api.requestGroupsAppOnly('alice@corp.com')).rejects.toBe(plainError);
+  });
+});

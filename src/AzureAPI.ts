@@ -183,6 +183,55 @@ export default class AzureAPI {
     return groups;
   }
 
+  private async requestAppOnlyToken(): Promise<string> {
+    const url = this.apiUrl + TOKEN_ENDPOINT;
+    const data = {
+      grant_type: 'client_credentials',
+      client_id: this.client_id,
+      client_secret: this.client_secret,
+      scope: 'https://graph.microsoft.com/.default',
+    };
+    const options = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      data: new URLSearchParams(data).toString(),
+    } as const;
+
+    try {
+      const res = await axios(url, options);
+      return (res.data as { access_token: string }).access_token;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data?.error_description || error.message || 'Unknown';
+        throw new Error('Failed acquiring app-only token: ' + errorMsg, { cause: error });
+      }
+      throw error;
+    }
+  }
+
+  public async requestGroupsAppOnly(upn: string): Promise<string[]> {
+    const token = await this.requestAppOnlyToken();
+    const url = `${this.graphUrl}/users/${encodeURIComponent(upn)}/memberOf`;
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + token,
+    };
+    const options = { method: 'GET', headers } as const;
+
+    try {
+      const res = await axios(url, options);
+      return (res.data.value as Array<Record<string, string>>).map(
+        (g) => g[this.group_name_key] ?? g['displayName']
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data?.error?.message || error.message || 'Unknown';
+        throw new Error('Failed fetching group membership via app-only token: ' + errorMsg, { cause: error });
+      }
+      throw error;
+    }
+  }
+
   public decodeUsernameToEmail(username: string): string {
     if (username.includes('@')) {
       return username;
