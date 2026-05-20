@@ -31,7 +31,7 @@ As simple as running:
             # https://docs.microsoft.com/en-us/graph/api/user-getmembergroups?view=graph-rest-1.0&tabs=http
             allow_groups:
               - "developer"
-            # OPTIONAL, authentication mode: 'ropc' (default, deprecated) or 'token' (recommended)
+            # OPTIONAL, authentication mode: 'ropc' (default, deprecated), 'token' (recommended), or 'auto' (heuristic detection)
             auth_mode: "token"
 
 ## Logging In
@@ -66,7 +66,10 @@ The user will be able to log in using `own_email` as the npm username.
 |------|--------------------|--------------|
 | ROPC (default, **deprecated**) | `ropc` | npm password is your Azure AD password. Microsoft is deprecating the Resource Owner Password Credentials flow. |
 | Token passthrough (recommended) | `token` | npm password is a pre-issued Azure AD bearer token. Use `az account get-access-token` to generate one. |
+| Auto-detect | `auto` | npm password is inspected at login time. If it starts with `eyJ`, has 3 dot-separated segments, and the first segment decodes to a JSON JWT header (`typ` or `alg`), it is treated as a bearer token (same as `token` mode). Otherwise it is treated as a password and routed to ROPC (with the usual deprecation warning). Omitting `auth_mode` still defaults to `ropc` — `auto` must be set explicitly. |
 | CI Mode (app-only) | `ci_mode: true` | npm password is ignored. The plugin uses the app registration's own credentials (client credentials grant) to acquire a Graph token and look up the user's Azure AD group memberships by UPN. |
+
+> **`auth_mode: auto` and the JWT-shaped-password edge case:** see [Auto Mode Edge Cases](#auto-mode-edge-cases) below.
 
 **Migrating to token mode:**
 
@@ -131,6 +134,34 @@ Equivalent GitHub Actions step:
 ```
 
 > In `ci_mode`, the token value is not validated against Azure AD. Access control is group-based: the plugin looks up the username's Azure AD group membership using the app-only credentials.
+
+## Auto Mode Edge Cases
+
+### JWT-shaped password misroute
+
+When `auth_mode: auto` is set, the plugin inspects each password at login time using a heuristic: a password is treated as a bearer token if it starts with `eyJ`, has exactly three dot-separated segments, and the first segment base64-decodes to a JSON object containing `typ` or `alg`.
+
+A password that happens to match this shape — for example, a legacy internal password that begins with `eyJ` and contains exactly two dots — will be routed to token validation flow rather than ROPC, causing the login to fail with an invalid-token error rather than an incorrect-password error.
+
+**Resolution:** Set `auth_mode: ropc` explicitly in your verdaccio config to bypass the heuristic entirely:
+
+```yaml
+auth:
+  azure-ad-login:
+    auth_mode: ropc
+```
+
+### Missing `organization_domain` warning
+
+When `auth_mode: auto` is set without `organization_domain`, Verdaccio emits a startup `warn` log:
+
+```
+verdaccio-azure-ad-login: auth_mode: auto with no organization_domain — bare usernames cannot be normalized for the ROPC path
+```
+
+Bare usernames (those without `@` or `..`) cannot be converted to an email address for the ROPC path. If a user logs in with a bare username and the heuristic routes to ROPC, the authentication will fail.
+
+**Resolution:** Add `organization_domain` to your config, or use `auth_mode: token` exclusively if all your users will always supply bearer tokens.
 
 ## How does it work?
 
