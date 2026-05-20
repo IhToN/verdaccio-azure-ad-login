@@ -24,7 +24,7 @@ export default class AzureAPI {
   private readonly organization_domain: string;
   public readonly allow_groups: Array<string>;
   private readonly group_name_key: string;
-  public readonly auth_mode: 'ropc' | 'token';
+  public readonly auth_mode: 'ropc' | 'token' | 'auto';
   private readonly tokenCache: Map<string, { groups: string[]; expiresAt: number }>;
 
   public readonly BASE_GROUPS = ['azuread'];

@@ -103,7 +103,14 @@ describe('AuthCustomPlugin constructor', () => {
   it('throws when ci_mode: true and auth_mode: token are both set (5-02-04)', () => {
     const bad = { ...config, ci_mode: true, auth_mode: 'token' } as AzureConfig;
     expect(() => new AuthCustomPlugin(bad, options)).toThrow(
-      'ci_mode and auth_mode: token are mutually exclusive'
+      'ci_mode is mutually exclusive with auth_mode: token and auth_mode: auto'
+    );
+  });
+
+  it('throws when ci_mode: true and auth_mode: auto are both set', () => {
+    const bad = { ...config, ci_mode: true, auth_mode: 'auto' } as AzureConfig;
+    expect(() => new AuthCustomPlugin(bad, options)).toThrow(
+      'ci_mode is mutually exclusive with auth_mode: token and auth_mode: auto'
     );
   });
 });
@@ -220,6 +227,75 @@ describe('AuthCustomPlugin.authenticate()', () => {
     const ciPlugin = new AuthCustomPlugin({ ...config, ci_mode: true } as AzureConfig, options);
     await expect(callAuthenticate(ciPlugin, 'ci-runner@corp.com', '')).resolves.toEqual(['azuread']);
     await expect(callAuthenticate(ciPlugin, 'ci-runner@corp.com', 'literally-anything')).resolves.toEqual(['azuread']);
+  });
+
+  describe('auto mode', () => {
+    beforeEach(() => {
+      Object.defineProperty(mockApi.prototype, 'auth_mode', {
+        get: jest.fn().mockReturnValue('auto'),
+        configurable: true,
+      });
+      mockApi.prototype.requestUserGroupsForToken = jest.fn().mockResolvedValue(['azuread', 'devs']);
+    });
+
+    it('rejects with "bad username/password, access denied" when password is empty', async () => {
+      const autoPlugin = new AuthCustomPlugin(config, options);
+      await expect(callAuthenticate(autoPlugin, 'user@example.com', '')).rejects.toThrow(
+        'bad username/password, access denied'
+      );
+      expect(mockApi.prototype.requestUserGroupsForToken).not.toHaveBeenCalled();
+      expect(mockApi.prototype.requestToken).not.toHaveBeenCalled();
+    });
+
+    it('routes JWT-shaped password to token path; requestUserGroupsForToken called, requestToken not called', async () => {
+      const autoPlugin = new AuthCustomPlugin(config, options);
+      const result = await callAuthenticate(
+        autoPlugin, 'user@example.com', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.payload.signature'
+      );
+      expect(result).toEqual(['azuread', 'devs']);
+      expect(mockApi.prototype.requestUserGroupsForToken).toHaveBeenCalled();
+      expect(mockApi.prototype.requestToken).not.toHaveBeenCalled();
+    });
+
+    it('routes plain password to ROPC path; requestToken called, requestUserGroupsForToken not called, warn emitted', async () => {
+      const autoPlugin = new AuthCustomPlugin(config, options);
+      const result = await callAuthenticate(autoPlugin, 'user@example.com', 'plainPassword123');
+      expect(result).toEqual(['azuread', 'devs']);
+      expect(mockApi.prototype.requestToken).toHaveBeenCalled();
+      expect(mockApi.prototype.requestUserGroupsForToken).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith(expect.anything(), expect.stringContaining('ROPC'));
+    });
+
+    it('rejects with "bad username/password, access denied" when token path throws', async () => {
+      mockApi.prototype.requestUserGroupsForToken = jest
+        .fn()
+        .mockRejectedValue(new Error('invalid token'));
+      const autoPlugin = new AuthCustomPlugin(config, options);
+      await expect(
+        callAuthenticate(autoPlugin, 'user@example.com', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.payload.signature')
+      ).rejects.toThrow('bad username/password, access denied');
+    });
+
+    it('rejects with "bad username/password, access denied" when ROPC path throws', async () => {
+      mockApi.prototype.requestToken = jest
+        .fn()
+        .mockRejectedValue(new Error('invalid_grant'));
+      const autoPlugin = new AuthCustomPlugin(config, options);
+      await expect(
+        callAuthenticate(autoPlugin, 'user@example.com', 'plainPassword123')
+      ).rejects.toThrow('bad username/password, access denied');
+    });
+
+    it('emits logger.debug with { detected: "token" } and "auto mode detected" for JWT password', async () => {
+      const autoPlugin = new AuthCustomPlugin(config, options);
+      await callAuthenticate(
+        autoPlugin, 'user@example.com', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.payload.signature'
+      );
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        expect.objectContaining({ detected: 'token' }),
+        expect.stringContaining('auto mode detected')
+      );
+    });
   });
 });
 

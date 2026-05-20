@@ -1,4 +1,4 @@
-import { intersection } from '../helpers';
+import { intersection, looksLikeBearerToken } from '../helpers';
 
 describe('intersection()', () => {
   it('returns empty array when both inputs are empty', () => {
@@ -31,5 +31,35 @@ describe('intersection()', () => {
 
   it('handles single-element arrays — no match', () => {
     expect(intersection(['a'], ['b'])).toEqual([]);
+  });
+});
+
+describe('looksLikeBearerToken()', () => {
+  it('returns true for a valid JWT with typ and alg in header', () => {
+    expect(looksLikeBearerToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.payload.signature')).toBe(true);
+  });
+
+  it('returns false for a plain password without eyJ prefix', () => {
+    expect(looksLikeBearerToken('myS3cretPassword!')).toBe(false);
+  });
+
+  it('returns false when the token has only 2 segments', () => {
+    expect(looksLikeBearerToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.payload')).toBe(false);
+  });
+
+  it('returns false when the token has 4 segments', () => {
+    expect(looksLikeBearerToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.a.b.c')).toBe(false);
+  });
+
+  it('returns false when base64 decodes but JSON.parse throws', () => {
+    expect(looksLikeBearerToken('eyJNOT_VALID!!!.payload.sig')).toBe(false);
+  });
+
+  it('returns false when header JSON has neither typ nor alg', () => {
+    expect(looksLikeBearerToken('eyJmb28iOiJiYXIifQ.payload.sig')).toBe(false);
+  });
+
+  it('returns false for an empty string', () => {
+    expect(looksLikeBearerToken('')).toBe(false);
   });
 });

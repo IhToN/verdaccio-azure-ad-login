@@ -13,7 +13,7 @@ import type { AzureConfig } from '../types/AzureConfig';
 import type { UnpublishPackageAccess } from '../types/UnpublishPackageAccess';
 
 import AzureAPI from './AzureAPI';
-import { intersection } from './helpers';
+import { intersection, looksLikeBearerToken } from './helpers';
 
 /**
  * Custom Verdaccio Authenticate Plugin.
@@ -35,14 +35,21 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
     }
 
     const rawMode = config.auth_mode as string | undefined;
-    if (rawMode !== undefined && rawMode !== 'ropc' && rawMode !== 'token') {
-      throw new Error(`verdaccio-azure-ad-login: Unknown auth_mode '${rawMode}'; expected 'ropc' or 'token'`);
+    if (rawMode !== undefined && rawMode !== 'ropc' && rawMode !== 'token' && rawMode !== 'auto') {
+      throw new Error(`verdaccio-azure-ad-login: Unknown auth_mode '${rawMode}'; expected 'ropc', 'token', or 'auto'`);
     }
 
-    if (config.ci_mode && config.auth_mode === 'token') {
+    if (config.ci_mode && (config.auth_mode === 'token' || config.auth_mode === 'auto')) {
       throw new Error(
-        'verdaccio-azure-ad-login: ci_mode and auth_mode: token are mutually exclusive. ' +
-        'Use ci_mode for app-only authentication or auth_mode: token for PAT passthrough.'
+        'verdaccio-azure-ad-login: ci_mode is mutually exclusive with auth_mode: token and auth_mode: auto. ' +
+        'Use ci_mode for app-only authentication, or set auth_mode explicitly for user-credential flows.'
+      );
+    }
+
+    if (config.auth_mode === 'auto' && !config.organization_domain) {
+      this.logger.warn(
+        {},
+        'verdaccio-azure-ad-login: auth_mode: auto with no organization_domain — bare usernames cannot be normalized for the ROPC path'
       );
     }
 
@@ -94,40 +101,27 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
         }
 
         const mode = this.api.auth_mode;
+        if (mode === 'auto') {
+          if (!password.trim()) {
+            cb(getUnauthorized('bad username/password, access denied'), false);
+            return;
+          }
+          const detected: 'token' | 'ropc' = looksLikeBearerToken(password) ? 'token' : 'ropc';
+          this.logger.debug({ detected }, 'verdaccio-azure-ad-login: auto mode detected @{detected}');
+          if (detected === 'token') {
+            await this.handleTokenAuth(user, password, cb);
+          } else {
+            await this.handleRopcAuth(user, password, cb);
+          }
+          return;
+        }
         switch (mode) {
           case 'ropc': {
-            this.logger.warn(
-              {},
-              'verdaccio-azure-ad-login: ROPC auth mode is deprecated; migrate to auth_mode: token using az account get-access-token'
-            );
-            const token = await this.api.requestToken(this.api.decodeUsernameToEmail(user), password);
-            this.logger.debug({ token }, 'MS Token Received >> @{token}');
-            const userGroups = await this.api.requestUserGroups(token.access_token);
-            this.logger.debug({ userGroups }, 'User is member of these groups >> @{userGroups}');
-            const ropcPolicy = this.applyGroupPolicy(userGroups);
-            if (ropcPolicy === null) {
-              cb(getUnauthorized('the user does not have enough privileges'), false);
-            } else {
-              cb(null, ropcPolicy.groups);
-            }
+            await this.handleRopcAuth(user, password, cb);
             break;
           }
           case 'token': {
-            if (password.trim() === '') {
-              cb(getUnauthorized('token is required'), false);
-              return;
-            }
-            const groups = await this.api.requestUserGroupsForToken(
-              password,
-              this.api.decodeUsernameToEmail(user)
-            );
-            this.logger.debug({ groups }, 'User is member of these groups >> @{groups}');
-            const tokenPolicy = this.applyGroupPolicy(groups);
-            if (tokenPolicy === null) {
-              cb(getUnauthorized('the user does not have enough privileges'), false);
-            } else {
-              cb(null, tokenPolicy.groups);
-            }
+            await this.handleTokenAuth(user, password, cb);
             break;
           }
           default: {
@@ -139,6 +133,41 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
         cb(getUnauthorized('bad username/password, access denied'), false);
       }
     })();
+  }
+
+  private async handleRopcAuth(user: string, password: string, cb: AuthCallback): Promise<void> {
+    this.logger.warn(
+      {},
+      'verdaccio-azure-ad-login: ROPC auth mode is deprecated; migrate to auth_mode: token using az account get-access-token'
+    );
+    const token = await this.api.requestToken(this.api.decodeUsernameToEmail(user), password);
+    this.logger.debug({ token }, 'MS Token Received >> @{token}');
+    const userGroups = await this.api.requestUserGroups(token.access_token);
+    this.logger.debug({ userGroups }, 'User is member of these groups >> @{userGroups}');
+    const ropcPolicy = this.applyGroupPolicy(userGroups);
+    if (ropcPolicy === null) {
+      cb(getUnauthorized('the user does not have enough privileges'), false);
+    } else {
+      cb(null, ropcPolicy.groups);
+    }
+  }
+
+  private async handleTokenAuth(user: string, password: string, cb: AuthCallback): Promise<void> {
+    if (password.trim() === '') {
+      cb(getUnauthorized('token is required'), false);
+      return;
+    }
+    const groups = await this.api.requestUserGroupsForToken(
+      password,
+      this.api.decodeUsernameToEmail(user)
+    );
+    this.logger.debug({ groups }, 'User is member of these groups >> @{groups}');
+    const tokenPolicy = this.applyGroupPolicy(groups);
+    if (tokenPolicy === null) {
+      cb(getUnauthorized('the user does not have enough privileges'), false);
+    } else {
+      cb(null, tokenPolicy.groups);
+    }
   }
 
   private applyGroupPolicy(userGroups: string[]): { groups: string[] } | null {
