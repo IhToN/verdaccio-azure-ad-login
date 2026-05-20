@@ -86,6 +86,34 @@ export default class AzureAPI {
     }
   }
 
+  public async requestAuthCodeToken(
+    code: string,
+    codeVerifier: string,
+    redirectUri: string
+  ): Promise<AzureOAuth> {
+    const url = this.apiUrl + TOKEN_ENDPOINT;
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    const data = {
+      client_id: this.client_id,
+      client_secret: this.client_secret,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+      code_verifier: codeVerifier,
+      scope: 'openid profile User.Read',
+    };
+    const options = { method: 'POST', headers, data: querystring.stringify(data) } as const;
+    try {
+      return await axios(url, options).then((res) => res.data);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data?.error_description || error.message || 'Unknown';
+        throw new Error('Failed exchanging authorization code for token: ' + errorMsg, { cause: error });
+      }
+      throw error;
+    }
+  }
+
   private async getUserGroups(token: string): Promise<Array<string>> {
     const url = this.graphUrl + MEMBER_GROUPS_ENDPOINT;
     const data = { securityEnabledOnly: false };
