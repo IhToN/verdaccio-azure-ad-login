@@ -51,6 +51,13 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
       );
     }
 
+    if (!config.redirect_uri) {
+      this.logger.warn(
+        {},
+        'verdaccio-azure-ad-login: redirect_uri is not set — browser login (register_middlewares) will not work'
+      );
+    }
+
     this.ciMode = config.ci_mode ?? false;
 
     this.logger.info(
