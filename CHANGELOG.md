@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/IhToN/verdaccio-azure-ad-login/compare/v1.3.0...v1.4.0) (2026-05-20)
+
+
+### Features
+
+* **auth:** add auth_mode: auto with JWT heuristic detection ([a8eb634](https://github.com/IhToN/verdaccio-azure-ad-login/commit/a8eb634cc1cd7bda02a63d3e244ff76111079591))
+
 ## [1.3.0](https://github.com/IhToN/verdaccio-azure-ad-login/compare/v1.2.0...v1.3.0) (2026-05-19)
 
 
