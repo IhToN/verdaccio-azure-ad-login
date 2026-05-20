@@ -386,3 +386,56 @@ describe('AzureAPI.requestGroupsAppOnly()', () => {
     await expect(api.requestGroupsAppOnly('alice@corp.com')).rejects.toBe(plainError);
   });
 });
+
+describe('AzureAPI.requestAuthCodeToken()', () => {
+  let api: AzureAPI;
+  const mockCode = 'auth-code-from-azure';
+  const mockCodeVerifier = 'dGhpcyBpcyBhIHRlc3QgdmVyaWZpZXI';
+  const mockRedirectUri = 'http://localhost:4873/-/auth/callback';
+
+  beforeEach(() => {
+    api = new AzureAPI({
+      tenant: 'test-tenant',
+      client_id: 'test-client-id',
+      client_secret: 'test-secret',
+    } as AzureConfig);
+  });
+
+  it('returns AzureOAuth on successful token exchange', async () => {
+    const mockResponse = {
+      token_type: 'Bearer',
+      scope: 'openid profile User.Read',
+      expires_in: 3600,
+      ext_expires_in: 3600,
+      access_token: 'mock-access-token',
+      refresh_token: 'mock-refresh-token',
+      id_token: 'mock-id-token',
+    };
+    mockedAxios.mockResolvedValueOnce({ data: mockResponse });
+    const result = await api.requestAuthCodeToken(mockCode, mockCodeVerifier, mockRedirectUri);
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('throws with descriptive message on Axios error', async () => {
+    const axiosError = new AxiosError('Request failed', '400', {} as any, null, {
+      status: 400,
+      data: { error_description: 'AADSTS70011: invalid scope' },
+      statusText: 'Bad Request',
+      headers: {},
+      config: {} as any,
+    });
+    mockedAxios.mockRejectedValueOnce(axiosError);
+    jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
+    await expect(
+      api.requestAuthCodeToken(mockCode, mockCodeVerifier, mockRedirectUri)
+    ).rejects.toThrow('Failed exchanging authorization code for token:');
+  });
+
+  it('re-throws non-Axios errors unchanged', async () => {
+    const networkError = new TypeError('fetch failed');
+    mockedAxios.mockRejectedValueOnce(networkError);
+    await expect(
+      api.requestAuthCodeToken(mockCode, mockCodeVerifier, mockRedirectUri)
+    ).rejects.toThrow('fetch failed');
+  });
+});
