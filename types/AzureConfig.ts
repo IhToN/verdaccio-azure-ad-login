@@ -10,4 +10,5 @@ export interface AzureConfig extends Config {
   group_name_key: string; // optional
   auth_mode?: 'ropc' | 'token' | 'auto'; // optional
   ci_mode?: boolean; // optional
+  redirect_uri?: string;
 }
