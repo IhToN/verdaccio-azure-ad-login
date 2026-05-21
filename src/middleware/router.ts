@@ -121,8 +121,9 @@ export function createAuthRouter(
     }
 
     // Build npm config set command (RESULT-02)
-    const host = req.headers['host'] ?? 'localhost';
-    const npmCmd = `npm config set //${host}/:_authToken "${tokenResponse.access_token}"`;
+    // Use redirect_uri (server-side config) as the registry host to avoid Host header injection
+    const registryHost = new URL(config.redirect_uri).host;
+    const npmCmd = `npm config set //${registryHost}/:_authToken '${tokenResponse.access_token}'`;
 
     res.setHeader('Content-Security-Policy', CSP_HEADER);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
