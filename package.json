@@ -60,6 +60,6 @@
     "build:js": "babel src/ --out-dir lib --extensions \".ts,.tsx\"",
     "build:types": "tsc --emitDeclarationOnly",
     "test": "jest",
-    "lint": "eslint \"**/*.{js,ts}\""
+    "lint": "eslint --no-color \"**/*.{js,ts}\""
   }
 }
