@@ -7,7 +7,7 @@ import { generateCodeVerifier, generateCodeChallenge } from './pkce';
 import { createState, validateAndConsumeState } from './oauthState';
 import { renderErrorPage, renderResultPage } from './html';
 
-export const CSP_HEADER = "default-src 'none'; style-src 'unsafe-inline'";
+export const CSP_HEADER = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'";
 
 export function createAuthRouter(
   config: AzureConfig,
