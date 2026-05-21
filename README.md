@@ -12,27 +12,53 @@ As simple as running:
     
 ## Configure
 
-    auth:
-        azure-ad-login:
-            # REQUIRED, Azure application tenant
-            tenant: ""
-            # REQUIRED, Azure client_id
-            client_id: ""
-            # REQUIRED, Azure application client_secret
-            client_secret: ""
-            # OPTIONAL, default email domain for accounts, example: organization.com
-            organization_domain: ""
-            # OPTIONAL, custom azure scope for users
-            # Standard scope: user.read openid profile offline_access
-            # Other permissions added here will be added to the end of the standard one
-            scope: ""
-            # OPTIONAL, users of these groups will be allowed to authenticate
-            # This requires the App to have GroupMember.Read.All permission:
-            # https://docs.microsoft.com/en-us/graph/api/user-getmembergroups?view=graph-rest-1.0&tabs=http
-            allow_groups:
-              - "developer"
-            # OPTIONAL, authentication mode: 'ropc' (default, deprecated), 'token' (recommended), or 'auto' (heuristic detection)
-            auth_mode: "token"
+### Auth plugin
+
+The `auth:` section handles `npm login` authentication:
+
+```yaml
+auth:
+  azure-ad-login:
+    # REQUIRED
+    tenant: ""
+    client_id: ""
+    client_secret: ""
+    # OPTIONAL — default email domain, lets users log in with the local part only
+    organization_domain: ""
+    # OPTIONAL — extra scopes appended to the default (user.read openid profile offline_access)
+    scope: ""
+    # OPTIONAL — restrict login to these Azure AD groups (requires GroupMember.Read.All permission)
+    allow_groups:
+      - "developer"
+    # OPTIONAL — which group object field to use as the group name (default: mailNickname)
+    group_name_key: ""
+    # OPTIONAL — authentication mode: 'ropc' (default, deprecated), 'token' (recommended), or 'auto'
+    auth_mode: "token"
+    # OPTIONAL — use app-only credentials for group lookup; npm password is ignored
+    ci_mode: false
+```
+
+### Middleware plugin
+
+The `middlewares:` section enables the browser-based login UI (`/-/auth/azure`).
+Only needed if you want browser login in addition to `npm login`.
+Each section carries its own independent Azure AD app registration — the middleware can use
+a different app than the auth section if needed.
+
+```yaml
+middlewares:
+  azure-ad-login:
+    enabled: true
+    # REQUIRED — Azure AD app credentials for the browser OAuth flow
+    tenant: "your-tenant-id"
+    client_id: "your-client-id"
+    client_secret: "your-client-secret"
+    # REQUIRED — must match the redirect URI registered in the Azure AD app
+    redirect_uri: "https://your.registry.local/-/auth/azure/callback"
+    # OPTIONAL — restrict browser login to these Azure AD groups
+    allow_groups:
+      - "developer"
+```
 
 ## Logging In
 
@@ -68,7 +94,8 @@ authenticate their npm client.
 
 ### 1 — Verdaccio configuration
 
-Add `azure-ad-login` under `middlewares:` and add `redirect_uri` to the `auth:` block:
+Add `azure-ad-login` under both `auth:` and `middlewares:`. Each section carries its own
+independent credentials — you can use the same app registration or different ones:
 
 ```yaml
 auth:
@@ -76,13 +103,16 @@ auth:
     tenant: "your-tenant-id"
     client_id: "your-client-id"
     client_secret: "your-client-secret"
-    redirect_uri: "https://your.registry.local/-/auth/azure/callback"
-    # Recommended for browser login — see note below
+    # Recommended when using browser login so tokens issued by the browser flow are accepted
     auth_mode: "token"
 
 middlewares:
   azure-ad-login:
     enabled: true
+    tenant: "your-tenant-id"
+    client_id: "your-client-id"
+    client_secret: "your-client-secret"
+    redirect_uri: "https://your.registry.local/-/auth/azure/callback"
 ```
 
 ### 2 — Azure AD app registration

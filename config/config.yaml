@@ -30,6 +30,8 @@ auth:
     file: ./.htpasswd
     max_users: -1
   azure-ad-login:
+    # Auth Mode to use: ropc, token or auto
+    auth_mode: "auto"
     # REQUIRED, Azure application tenant
     tenant: ""
     # REQUIRED, Azure client_id
@@ -92,6 +94,16 @@ server:
 middlewares:
   audit:
     enabled: true
+  azure-ad-login:
+    enabled: true
+    # REQUIRED, Azure application tenant
+    tenant: ""
+    # REQUIRED, Azure client_id
+    client_id: ""
+    # REQUIRED, Azure application client_secret
+    client_secret: ""
+    # REQUIRED, Same URL needs to be added to Azure App
+    redirect_uri: "https://your.registry.local/-/auth/azure/callback"
 
 # log settings
 logs:

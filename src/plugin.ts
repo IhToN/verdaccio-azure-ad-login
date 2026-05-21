@@ -30,11 +30,32 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig>, IPlug
     this.logger = options.logger;
     this.config = config;
 
+    // Middleware instances receive lodash.merge(fullVerdaccioConfig, middlewareSectionConfig),
+    // so 'packages' is always present. Auth instances get only the auth section config.
+    const isMiddlewareInstance = 'packages' in (config as unknown as Record<string, unknown>);
+
+    if (isMiddlewareInstance) {
+      const missingCreds = (['tenant', 'client_id', 'client_secret'] as const).filter(
+        (key) => !config[key] || config[key].trim() === ''
+      );
+      if (missingCreds.length > 0) {
+        throw new Error(
+          `verdaccio-azure-ad-login: Missing required middlewares config fields: ${missingCreds.join(', ')}`
+        );
+      }
+      if (!config.redirect_uri || config.redirect_uri.trim() === '') {
+        throw new Error('verdaccio-azure-ad-login: redirect_uri is required in the middlewares config section');
+      }
+      this.ciMode = false;
+      this.api = new AzureAPI(config);
+      return this;
+    }
+
     const missing = (['tenant', 'client_id', 'client_secret'] as const).filter(
       (key) => !config[key] || config[key].trim() === ''
     );
     if (missing.length > 0) {
-      throw new Error(`verdaccio-azure-ad-login: Missing required config fields: ${missing.join(', ')}`);
+      throw new Error(`verdaccio-azure-ad-login: Missing required auth config fields: ${missing.join(', ')}`);
     }
 
     const rawMode = config.auth_mode as string | undefined;
@@ -53,13 +74,6 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig>, IPlug
       this.logger.warn(
         {},
         'verdaccio-azure-ad-login: auth_mode: auto with no organization_domain — bare usernames cannot be normalized for the ROPC path'
-      );
-    }
-
-    if (!config.redirect_uri) {
-      this.logger.warn(
-        {},
-        'verdaccio-azure-ad-login: redirect_uri is not set — browser login (register_middlewares) will not work'
       );
     }
 
