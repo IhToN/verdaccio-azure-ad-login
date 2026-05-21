@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/IhToN/verdaccio-azure-ad-login/compare/v1.4.0...v2.0.0) (2026-05-21)
+
+
+### Features
+
+* **auth:** extract auth strategy modules and dispatcher ([4c2f47c](https://github.com/IhToN/verdaccio-azure-ad-login/commit/4c2f47c011f65e902b35d06892478d40fd038507))
+* **azure-api:** add requestAuthCodeToken for authorization_code + PKCE exchange ([13b82c6](https://github.com/IhToN/verdaccio-azure-ad-login/commit/13b82c6349bba9c86646da77a71a5e902c6c3b33))
+* **config:** add optional redirect_uri field to AzureConfig ([879961c](https://github.com/IhToN/verdaccio-azure-ad-login/commit/879961c3d31980ec97cfde228b1f4ee5e3bc0f82))
+* **config:** require independent credentials per plugin section ([fc9628b](https://github.com/IhToN/verdaccio-azure-ad-login/commit/fc9628bfaced28a4d9d636fb09a92e64cbd9e178))
+* **middleware:** add html templates, login route, and register_middlewares ([810510f](https://github.com/IhToN/verdaccio-azure-ad-login/commit/810510f11c8dd2ea78d26c133643f1a6245af122))
+* **middleware:** add script-src 'unsafe-inline' to CSP_HEADER for copy button onclick handlers ([1b22f60](https://github.com/IhToN/verdaccio-azure-ad-login/commit/1b22f60fb4d8fed7bcdd30e23bb4b25d17bc02fe))
+* **middleware:** enhance result page with UPN display, expiry, and clipboard copy buttons ([2f7fbcf](https://github.com/IhToN/verdaccio-azure-ad-login/commit/2f7fbcfb12e9fbf26dda8ec51a4c44bcaaf4cfc1))
+* **middleware:** implement GET /-/auth/azure/callback with PKCE exchange and group policy ([2ffb62a](https://github.com/IhToN/verdaccio-azure-ad-login/commit/2ffb62ace9239f47075c1dafee4941137cbe910f))
+* **middleware:** pass id_token and expires_in to renderResultPage in callback handler ([940140c](https://github.com/IhToN/verdaccio-azure-ad-login/commit/940140c5b6819acdddba3acbbe6e9f847c7d7bc6))
+* **oauth-state:** add CSRF-safe OAuth state store with TTL and capacity cap ([6826aa2](https://github.com/IhToN/verdaccio-azure-ad-login/commit/6826aa2e625857be3f8ebcb43a5fd0e9889069b2))
+* **pkce:** add PKCE S256 code verifier and challenge utilities ([3831732](https://github.com/IhToN/verdaccio-azure-ad-login/commit/383173228f86d0fb2c024f6dc5e4cc849d88827a))
+* **plugin:** warn on startup when redirect_uri is not configured ([bb77f0c](https://github.com/IhToN/verdaccio-azure-ad-login/commit/bb77f0c35be98f8d6735b43ec8dd5bc6863a8217))
+
+
+### Bug Fixes
+
+* **azure-api:** replace deprecated querystring with URLSearchParams ([f9246e6](https://github.com/IhToN/verdaccio-azure-ad-login/commit/f9246e624e3c15d578b625c5f8efef46590b0756))
+* **config:** raise engines.node constraint from >=10 to >=16 ([2622d1f](https://github.com/IhToN/verdaccio-azure-ad-login/commit/2622d1f9586792807fade23b5e5050e2af99bcab))
+* **lint:** wire eslint flat config and fix Node 20.10 compatibility ([e3466da](https://github.com/IhToN/verdaccio-azure-ad-login/commit/e3466da255931bdb258d095095d14969ffc0e0bb))
+* **plugin:** use enabled flag to detect middleware instance ([5256a24](https://github.com/IhToN/verdaccio-azure-ad-login/commit/5256a24e51e3b6adae1fd85c0ece902b3906e09c))
+* **router:** address Copilot PR review findings ([fdf332f](https://github.com/IhToN/verdaccio-azure-ad-login/commit/fdf332fae521f7c6d5d79ba4945d26e0e7bc7df0))
+* **router:** replace Host header with redirect_uri host in npm command ([db89c5c](https://github.com/IhToN/verdaccio-azure-ad-login/commit/db89c5cc975dc4376403c95e5a394a2c3c6b7fd3))
+* **router:** replace leaked Azure AD error detail with generic message ([e20c235](https://github.com/IhToN/verdaccio-azure-ad-login/commit/e20c23544bebc6a9938cf934b6489826b25609ab))
+* **router:** wrap async callback in void IIFE to satisfy no-misused-promises ([e323aec](https://github.com/IhToN/verdaccio-azure-ad-login/commit/e323aec7109818e10ba8f00273d8eb68e8d5b5f2))
+
 ## [1.4.0](https://github.com/IhToN/verdaccio-azure-ad-login/compare/v1.3.0...v1.4.0) (2026-05-20)
 
 
