@@ -1,6 +1,7 @@
 import { ropcStrategy } from '../../../auth/strategies/ropc';
 import AzureAPI from '../../../AzureAPI';
 import type { Logger } from '@verdaccio/types';
+import type { AzureConfig } from '../../../../types/AzureConfig';
 
 jest.mock('../../../AzureAPI');
 
@@ -33,7 +34,7 @@ beforeEach(() => {
 
 describe('ropcStrategy', () => {
   it('returns user groups on success', async () => {
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
     const result = await ropcStrategy(api, 'user@example.com', 'pass', mockLogger);
 
     expect(result).toEqual(['grp-1']);
@@ -42,7 +43,7 @@ describe('ropcStrategy', () => {
   });
 
   it('emits logger.warn containing ROPC on each call', async () => {
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
     await ropcStrategy(api, 'user@example.com', 'pass', mockLogger);
 
     expect(mockLogger.warn).toHaveBeenCalled();
@@ -52,7 +53,7 @@ describe('ropcStrategy', () => {
 
   it('throws when requestToken rejects', async () => {
     mockApi.prototype.requestToken = jest.fn().mockRejectedValue(new Error('azure error'));
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
 
     await expect(ropcStrategy(api, 'user@example.com', 'pass', mockLogger)).rejects.toThrow(
       'azure error'
@@ -61,7 +62,7 @@ describe('ropcStrategy', () => {
 
   it('throws when requestUserGroups rejects', async () => {
     mockApi.prototype.requestUserGroups = jest.fn().mockRejectedValue(new Error('graph error'));
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
 
     await expect(ropcStrategy(api, 'user@example.com', 'pass', mockLogger)).rejects.toThrow(
       'graph error'

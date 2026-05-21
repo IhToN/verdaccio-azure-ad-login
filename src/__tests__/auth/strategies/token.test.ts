@@ -1,6 +1,7 @@
 import { tokenStrategy } from '../../../auth/strategies/token';
 import AzureAPI from '../../../AzureAPI';
 import type { Logger } from '@verdaccio/types';
+import type { AzureConfig } from '../../../../types/AzureConfig';
 
 jest.mock('../../../AzureAPI');
 
@@ -26,7 +27,7 @@ beforeEach(() => {
 
 describe('tokenStrategy', () => {
   it('returns groups when requestUserGroupsForToken succeeds', async () => {
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
     const result = await tokenStrategy(api, 'user@example.com', 'bearer-token', mockLogger);
 
     expect(result).toEqual(['grp-t']);
@@ -40,7 +41,7 @@ describe('tokenStrategy', () => {
     mockApi.prototype.requestUserGroupsForToken = jest
       .fn()
       .mockRejectedValue(new Error('token error'));
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
 
     await expect(tokenStrategy(api, 'user@example.com', 'bearer-token', mockLogger)).rejects.toThrow(
       'token error'

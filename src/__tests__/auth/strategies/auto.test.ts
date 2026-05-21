@@ -1,6 +1,7 @@
 import { autoStrategy } from '../../../auth/strategies/auto';
 import AzureAPI from '../../../AzureAPI';
 import type { Logger } from '@verdaccio/types';
+import type { AzureConfig } from '../../../../types/AzureConfig';
 
 jest.mock('../../../AzureAPI');
 
@@ -37,7 +38,7 @@ beforeEach(() => {
 
 describe('autoStrategy', () => {
   it('JWT-shaped password routes to token path: requestUserGroupsForToken called, requestToken not called', async () => {
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
     await autoStrategy(api, 'user@example.com', JWT_PASSWORD, mockLogger);
 
     expect(mockApi.prototype.requestUserGroupsForToken).toHaveBeenCalledTimes(1);
@@ -45,7 +46,7 @@ describe('autoStrategy', () => {
   });
 
   it('plain password routes to ropc path: requestToken called, requestUserGroupsForToken not called', async () => {
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
     await autoStrategy(api, 'user@example.com', PLAIN_PASSWORD, mockLogger);
 
     expect(mockApi.prototype.requestToken).toHaveBeenCalledTimes(1);
@@ -53,7 +54,7 @@ describe('autoStrategy', () => {
   });
 
   it('ROPC routing emits logger.warn containing ROPC', async () => {
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
     await autoStrategy(api, 'user@example.com', PLAIN_PASSWORD, mockLogger);
 
     expect(mockLogger.warn).toHaveBeenCalled();
@@ -62,7 +63,7 @@ describe('autoStrategy', () => {
   });
 
   it('JWT routing emits logger.debug with detected: token', async () => {
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
     await autoStrategy(api, 'user@example.com', JWT_PASSWORD, mockLogger);
 
     expect(mockLogger.debug).toHaveBeenCalledWith(

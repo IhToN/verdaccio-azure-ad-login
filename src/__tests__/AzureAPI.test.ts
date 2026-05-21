@@ -1,4 +1,4 @@
-import axios, { type AxiosStatic } from 'axios';
+import axios, { type AxiosStatic, type InternalAxiosRequestConfig } from 'axios';
 import AzureAPI from '../AzureAPI';
 import type { AzureConfig } from '../../types/AzureConfig';
 
@@ -39,7 +39,7 @@ describe('AzureAPI.requestToken()', () => {
       status: 200,
       statusText: 'OK',
       headers: {},
-      config: {} as any,
+      config: {} as unknown as InternalAxiosRequestConfig,
     });
 
     const result = await api.requestToken('u', 'p');
@@ -53,12 +53,12 @@ describe('AzureAPI.requestToken()', () => {
   });
 
   it('wraps AxiosError into descriptive Error', async () => {
-    const axiosError = new AxiosError('Unauthorized', '401', {} as any, null, {
+    const axiosError = new AxiosError('Unauthorized', '401', {} as unknown as InternalAxiosRequestConfig, null, {
       status: 401,
       data: { error: 'invalid_grant', error_description: 'AADSTS50126: Bad credentials' },
       statusText: 'Unauthorized',
       headers: {},
-      config: {} as any,
+      config: {} as unknown as InternalAxiosRequestConfig,
     });
     mockedAxios.mockRejectedValueOnce(axiosError);
     jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
@@ -69,7 +69,7 @@ describe('AzureAPI.requestToken()', () => {
   });
 
   it('wraps AxiosError without response data using error.message', async () => {
-    const axiosError = new AxiosError('Network Error', 'ERR_NETWORK', {} as any, null, undefined);
+    const axiosError = new AxiosError('Network Error', 'ERR_NETWORK', {} as unknown as InternalAxiosRequestConfig, null, undefined);
     mockedAxios.mockRejectedValueOnce(axiosError);
     jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
 
@@ -117,14 +117,14 @@ describe('AzureAPI.requestUserGroups()', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as unknown as InternalAxiosRequestConfig,
       }) // getUserGroups
       .mockResolvedValueOnce({
         data: { value: [{ mailNickname: 'devs' }] },
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as unknown as InternalAxiosRequestConfig,
       }); // getGroupsInformation
 
     const result = await api.requestUserGroups('token');
@@ -180,21 +180,21 @@ describe('AzureAPI.requestUserGroupsForToken()', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as unknown as InternalAxiosRequestConfig,
       })
       .mockResolvedValueOnce({
         data: { value: ['group-id-1'] },
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as unknown as InternalAxiosRequestConfig,
       })
       .mockResolvedValueOnce({
         data: { value: [{ mailNickname: 'devs' }] },
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as unknown as InternalAxiosRequestConfig,
       });
   }
 
@@ -245,19 +245,19 @@ describe('AzureAPI.requestUserGroupsForToken()', () => {
       status: 200,
       statusText: 'OK',
       headers: {},
-      config: {} as any,
+      config: {} as unknown as InternalAxiosRequestConfig,
     });
     await expect(api.requestUserGroupsForToken(token, upn)).rejects.toThrow('token does not match user');
     expect(mockedAxios).toHaveBeenCalledTimes(1);
   });
 
   it('/me HTTP error: throws descriptive error wrapping AxiosError', async () => {
-    const axiosError = new AxiosError('Unauthorized', '401', {} as any, null, {
+    const axiosError = new AxiosError('Unauthorized', '401', {} as unknown as InternalAxiosRequestConfig, null, {
       status: 401,
       data: { error: { message: 'InvalidAuthenticationToken' } },
       statusText: 'Unauthorized',
       headers: {},
-      config: {} as any,
+      config: {} as unknown as InternalAxiosRequestConfig,
     });
     mockedAxios.mockRejectedValueOnce(axiosError);
     jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
@@ -295,14 +295,14 @@ describe('AzureAPI.requestGroupsAppOnly()', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as unknown as InternalAxiosRequestConfig,
       })
       .mockResolvedValueOnce({
         data: { value: [{ mailNickname: 'devs', displayName: 'Developers' }] },
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as unknown as InternalAxiosRequestConfig,
       });
 
     const result = await api.requestGroupsAppOnly('alice@corp.com');
@@ -318,14 +318,14 @@ describe('AzureAPI.requestGroupsAppOnly()', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as unknown as InternalAxiosRequestConfig,
       })
       .mockResolvedValueOnce({
         data: { value: [{ displayName: 'Developers' }] },
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as unknown as InternalAxiosRequestConfig,
       });
 
     const result = await api.requestGroupsAppOnly('alice@corp.com');
@@ -334,12 +334,12 @@ describe('AzureAPI.requestGroupsAppOnly()', () => {
   });
 
   it('token acquisition failure throws descriptive error (5-01-03)', async () => {
-    const axiosError = new AxiosError('Unauthorized', '401', {} as any, null, {
+    const axiosError = new AxiosError('Unauthorized', '401', {} as unknown as InternalAxiosRequestConfig, null, {
       status: 401,
       data: { error: 'invalid_client', error_description: 'AADSTS70011: Invalid scope' },
       statusText: 'Unauthorized',
       headers: {},
-      config: {} as any,
+      config: {} as unknown as InternalAxiosRequestConfig,
     });
     mockedAxios.mockRejectedValueOnce(axiosError);
     jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
@@ -355,14 +355,14 @@ describe('AzureAPI.requestGroupsAppOnly()', () => {
       status: 200,
       statusText: 'OK',
       headers: {},
-      config: {} as any,
+      config: {} as unknown as InternalAxiosRequestConfig,
     });
-    const graphError = new AxiosError('Forbidden', '403', {} as any, null, {
+    const graphError = new AxiosError('Forbidden', '403', {} as unknown as InternalAxiosRequestConfig, null, {
       status: 403,
       data: { error: { message: 'Insufficient privileges' } },
       statusText: 'Forbidden',
       headers: {},
-      config: {} as any,
+      config: {} as unknown as InternalAxiosRequestConfig,
     });
     mockedAxios.mockRejectedValueOnce(graphError);
     jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
@@ -378,7 +378,7 @@ describe('AzureAPI.requestGroupsAppOnly()', () => {
       status: 200,
       statusText: 'OK',
       headers: {},
-      config: {} as any,
+      config: {} as unknown as InternalAxiosRequestConfig,
     });
     const plainError = new Error('Network timeout');
     mockedAxios.mockRejectedValueOnce(plainError);
@@ -417,12 +417,12 @@ describe('AzureAPI.requestAuthCodeToken()', () => {
   });
 
   it('throws with descriptive message on Axios error', async () => {
-    const axiosError = new AxiosError('Request failed', '400', {} as any, null, {
+    const axiosError = new AxiosError('Request failed', '400', {} as unknown as InternalAxiosRequestConfig, null, {
       status: 400,
       data: { error_description: 'AADSTS70011: invalid scope' },
       statusText: 'Bad Request',
       headers: {},
-      config: {} as any,
+      config: {} as unknown as InternalAxiosRequestConfig,
     });
     mockedAxios.mockRejectedValueOnce(axiosError);
     jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);

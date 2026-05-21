@@ -1,6 +1,7 @@
 import { ciStrategy } from '../../../auth/strategies/ci';
 import AzureAPI from '../../../AzureAPI';
 import type { Logger } from '@verdaccio/types';
+import type { AzureConfig } from '../../../../types/AzureConfig';
 
 jest.mock('../../../AzureAPI');
 
@@ -29,7 +30,7 @@ describe('ciStrategy', () => {
     mockApi.prototype.decodeUsernameToEmail = jest
       .fn()
       .mockImplementation(() => 'ci-user@example.com');
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
     const result = await ciStrategy(api, 'ci-user@example.com', mockLogger);
 
     expect(result).toEqual(['ci-grp']);
@@ -40,7 +41,7 @@ describe('ciStrategy', () => {
     mockApi.prototype.requestGroupsAppOnly = jest
       .fn()
       .mockRejectedValue(new Error('app-only error'));
-    const api = new AzureAPI({} as any);
+    const api = new AzureAPI({} as unknown as AzureConfig);
 
     await expect(ciStrategy(api, 'ci-user@example.com', mockLogger)).rejects.toThrow(
       'app-only error'
