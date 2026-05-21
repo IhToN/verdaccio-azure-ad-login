@@ -8,9 +8,9 @@ import { globalIgnores } from 'eslint/config';
 export default [
   globalIgnores(['.claude/', 'index.ts']),
   ...verdaccioConfig,
-  // Root-level CommonJS infra files (jest config, resolver, node-builtins shims) use require()
+  // Root-level CommonJS infra files (jest config) use require()
   {
-    files: ['*.js', 'jest-node-builtins/**/*.js'],
+    files: ['*.js'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
     },
