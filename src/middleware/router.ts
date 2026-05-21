@@ -97,8 +97,7 @@ export function createAuthRouter(
       tokenResponse = await api.requestAuthCodeToken(code, codeVerifier, config.redirect_uri);
     } catch (err) {
       logger.error({ err }, 'Azure AD token exchange failed: @{err}');
-      const message = err instanceof Error ? err.message : 'Token exchange failed';
-      sendError(502, message);
+      sendError(502, 'Authentication failed. Contact your administrator.');
       return;
     }
 
@@ -108,8 +107,7 @@ export function createAuthRouter(
       userGroups = await api.requestUserGroups(tokenResponse.access_token);
     } catch (err) {
       logger.error({ err }, 'Group resolution failed: @{err}');
-      const message = err instanceof Error ? err.message : 'Group resolution failed';
-      sendError(502, message);
+      sendError(502, 'Authentication failed. Contact your administrator.');
       return;
     }
 
