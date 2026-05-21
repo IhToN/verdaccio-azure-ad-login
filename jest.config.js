@@ -18,7 +18,7 @@ module.exports = {
   verbose: true,
   collectCoverage: true,
   coveragePathIgnorePatterns: ['node_modules', 'lib', 'jest-node-builtins'],
-  testPathIgnorePatterns: ['node_modules', '\\.claude/'],
+  testPathIgnorePatterns: ['node_modules', '\\.claude/', 'lib'],
   coverageThreshold: {
     global: {
       lines: 80,
