@@ -5,7 +5,9 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
-    "lib/"
+    "lib/",
+    "!lib/__tests__/",
+    "types/"
   ],
   "engines": {
     "node": ">=10"
