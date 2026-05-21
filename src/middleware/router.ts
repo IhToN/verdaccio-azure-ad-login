@@ -40,17 +40,7 @@ export function createAuthRouter(
     authorizeUrl.searchParams.set('code_challenge', codeChallenge);
     authorizeUrl.searchParams.set('code_challenge_method', 'S256');
 
-    const urlString = authorizeUrl.toString();
-    // Escape & as &amp; for the HTML attribute value; browsers decode it before following the URL
-    const escapedUrl = urlString.replace(/&/g, '&amp;');
-
-    res.setHeader('Content-Security-Policy', CSP_HEADER);
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.status(200).send(
-      `<!DOCTYPE html><html><head>` +
-      `<meta http-equiv="refresh" content="0;url=${escapedUrl}">` +
-      `</head><body></body></html>`
-    );
+    res.redirect(302, authorizeUrl.toString());
   });
 
   router.get('/azure/callback', (req, res) => {
@@ -126,6 +116,7 @@ export function createAuthRouter(
 
       res.setHeader('Content-Security-Policy', CSP_HEADER);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
       res.status(200).send(renderResultPage(
         tokenResponse.access_token,
         npmCmd,

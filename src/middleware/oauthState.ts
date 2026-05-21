@@ -8,6 +8,8 @@ interface StateEntry {
   expiresAt: number;
 }
 
+// Single-instance only: state lives in process memory.
+// Multi-instance deployments must use sticky sessions or a shared store (e.g. Redis).
 const store = new Map<string, StateEntry>();
 
 export function createState(codeVerifier: string): string {

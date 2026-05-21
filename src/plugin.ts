@@ -46,6 +46,11 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig>, IPlug
       if (!config.redirect_uri || config.redirect_uri.trim() === '') {
         throw new Error('verdaccio-azure-ad-login: redirect_uri is required in the middlewares config section');
       }
+      try {
+        new URL(config.redirect_uri);
+      } catch {
+        throw new Error(`verdaccio-azure-ad-login: redirect_uri is not a valid URL: ${config.redirect_uri}`);
+      }
       this.ciMode = false;
       this.api = new AzureAPI(config);
       return this;
