@@ -53,84 +53,86 @@ export function createAuthRouter(
     );
   });
 
-  router.get('/azure/callback', async (req, res) => {
-    const sendError = (status: number, message: string): void => {
+  router.get('/azure/callback', (req, res) => {
+    void (async () => {
+      const sendError = (status: number, message: string): void => {
+        res.setHeader('Content-Security-Policy', CSP_HEADER);
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.status(status).send(renderErrorPage(message));
+      };
+
+      // Azure AD error redirect
+      const azureError = req.query['error'];
+      const azureErrorDescription = req.query['error_description'];
+      if (typeof azureError === 'string') {
+        const message = typeof azureErrorDescription === 'string'
+          ? azureErrorDescription
+          : azureError;
+        sendError(400, message);
+        return;
+      }
+
+      const state = req.query['state'];
+      const code = req.query['code'];
+
+      if (typeof state !== 'string' || typeof code !== 'string') {
+        sendError(400, 'Missing state or code parameter');
+        return;
+      }
+
+      // CSRF state validation (single-use, TTL-checked)
+      const codeVerifier = validateAndConsumeState(state);
+      if (codeVerifier === null) {
+        sendError(400, 'Invalid or expired state parameter');
+        return;
+      }
+
+      if (!config.redirect_uri) {
+        sendError(500, 'redirect_uri is not configured on the server');
+        return;
+      }
+
+      // Exchange authorization code for tokens
+      let tokenResponse;
+      try {
+        tokenResponse = await api.requestAuthCodeToken(code, codeVerifier, config.redirect_uri);
+      } catch (err) {
+        logger.error({ err }, 'Azure AD token exchange failed: @{err}');
+        sendError(502, 'Authentication failed. Contact your administrator.');
+        return;
+      }
+
+      // Resolve group membership
+      let userGroups: string[];
+      try {
+        userGroups = await api.requestUserGroups(tokenResponse.access_token);
+      } catch (err) {
+        logger.error({ err }, 'Group resolution failed: @{err}');
+        sendError(502, 'Authentication failed. Contact your administrator.');
+        return;
+      }
+
+      // Apply group policy
+      const policy = applyGroupPolicy(userGroups);
+      if (policy === null) {
+        sendError(403, 'Your account does not have access to this registry');
+        return;
+      }
+
+      // Build npm config set command (RESULT-02)
+      // Use redirect_uri (server-side config) as the registry host to avoid Host header injection
+      const registryHost = new URL(config.redirect_uri).host;
+      const npmCmd = `npm config set //${registryHost}/:_authToken '${tokenResponse.access_token}'`;
+
       res.setHeader('Content-Security-Policy', CSP_HEADER);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.status(status).send(renderErrorPage(message));
-    };
-
-    // Azure AD error redirect
-    const azureError = req.query['error'];
-    const azureErrorDescription = req.query['error_description'];
-    if (typeof azureError === 'string') {
-      const message = typeof azureErrorDescription === 'string'
-        ? azureErrorDescription
-        : azureError;
-      sendError(400, message);
-      return;
-    }
-
-    const state = req.query['state'];
-    const code = req.query['code'];
-
-    if (typeof state !== 'string' || typeof code !== 'string') {
-      sendError(400, 'Missing state or code parameter');
-      return;
-    }
-
-    // CSRF state validation (single-use, TTL-checked)
-    const codeVerifier = validateAndConsumeState(state);
-    if (codeVerifier === null) {
-      sendError(400, 'Invalid or expired state parameter');
-      return;
-    }
-
-    if (!config.redirect_uri) {
-      sendError(500, 'redirect_uri is not configured on the server');
-      return;
-    }
-
-    // Exchange authorization code for tokens
-    let tokenResponse;
-    try {
-      tokenResponse = await api.requestAuthCodeToken(code, codeVerifier, config.redirect_uri);
-    } catch (err) {
-      logger.error({ err }, 'Azure AD token exchange failed: @{err}');
-      sendError(502, 'Authentication failed. Contact your administrator.');
-      return;
-    }
-
-    // Resolve group membership
-    let userGroups: string[];
-    try {
-      userGroups = await api.requestUserGroups(tokenResponse.access_token);
-    } catch (err) {
-      logger.error({ err }, 'Group resolution failed: @{err}');
-      sendError(502, 'Authentication failed. Contact your administrator.');
-      return;
-    }
-
-    // Apply group policy
-    const policy = applyGroupPolicy(userGroups);
-    if (policy === null) {
-      sendError(403, 'Your account does not have access to this registry');
-      return;
-    }
-
-    // Build npm config set command (RESULT-02)
-    // Use redirect_uri (server-side config) as the registry host to avoid Host header injection
-    const registryHost = new URL(config.redirect_uri).host;
-    const npmCmd = `npm config set //${registryHost}/:_authToken '${tokenResponse.access_token}'`;
-
-    res.setHeader('Content-Security-Policy', CSP_HEADER);
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.status(200).send(renderResultPage(
-      tokenResponse.access_token,
-      npmCmd,
-      tokenResponse.id_token,
-      tokenResponse.expires_in
-    ));
+      res.status(200).send(renderResultPage(
+        tokenResponse.access_token,
+        npmCmd,
+        tokenResponse.id_token,
+        tokenResponse.expires_in
+      ));
+    })();
   });
 
   return router;
