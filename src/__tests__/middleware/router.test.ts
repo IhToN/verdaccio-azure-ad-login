@@ -180,7 +180,7 @@ describe('GET /-/auth/azure/callback', () => {
     const res = await request(app)
       .get(`/-/auth/azure/callback?state=${encodeURIComponent(state)}&code=badcode`);
     expect(res.status).toBe(502);
-    expect(res.text).toContain('token exchange failed');
+    expect(res.text).toContain('Authentication failed. Contact your administrator.');
   });
 
   it('returns 502 when requestUserGroups throws', async () => {
@@ -192,7 +192,7 @@ describe('GET /-/auth/azure/callback', () => {
     const res = await request(app)
       .get(`/-/auth/azure/callback?state=${encodeURIComponent(state)}&code=validcode`);
     expect(res.status).toBe(502);
-    expect(res.text).toContain('graph api error');
+    expect(res.text).toContain('Authentication failed. Contact your administrator.');
   });
 
   it('returns 400 with Azure error code when error_description is absent', async () => {

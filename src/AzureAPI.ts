@@ -1,5 +1,4 @@
 import { createHash } from 'crypto';
-import querystring from 'querystring';
 
 import axios from 'axios';
 
@@ -72,7 +71,7 @@ export default class AzureAPI {
     const options = {
       method: 'POST',
       headers,
-      data: querystring.stringify(data),
+      data: new URLSearchParams(data).toString(),
     } as const;
 
     try {
@@ -102,7 +101,7 @@ export default class AzureAPI {
       code_verifier: codeVerifier,
       scope: 'openid profile User.Read',
     };
-    const options = { method: 'POST', headers, data: querystring.stringify(data) } as const;
+    const options = { method: 'POST', headers, data: new URLSearchParams(data).toString() } as const;
     try {
       return await axios(url, options).then((res) => res.data);
     } catch (error) {
