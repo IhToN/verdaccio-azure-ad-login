@@ -30,9 +30,9 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig>, IPlug
     this.logger = options.logger;
     this.config = config;
 
-    // Middleware instances receive lodash.merge(fullVerdaccioConfig, middlewareSectionConfig),
-    // so 'packages' is always present. Auth instances get only the auth section config.
-    const isMiddlewareInstance = 'packages' in (config as unknown as Record<string, unknown>);
+    // Both auth and middleware instances receive legacyMerge(fullVerdaccioConfig, sectionConfig).
+    // The only reliable distinction is the 'enabled' flag, which only the middlewares: section sets.
+    const isMiddlewareInstance = (config as unknown as Record<string, unknown>)['enabled'] === true;
 
     if (isMiddlewareInstance) {
       const missingCreds = (['tenant', 'client_id', 'client_secret'] as const).filter(
