@@ -2,12 +2,14 @@ import type {
   PluginOptions,
   AuthCallback,
   IPluginAuth,
+  IPluginMiddleware,
   Logger,
   RemoteUser,
   PackageAccess,
   AuthAccessCallback,
 } from '@verdaccio/types';
 import { getUnauthorized } from '@verdaccio/commons-api';
+import type { Application } from 'express';
 
 import type { AzureConfig } from '../types/AzureConfig';
 import type { UnpublishPackageAccess } from '../types/UnpublishPackageAccess';
@@ -16,14 +18,17 @@ import AzureAPI from './AzureAPI';
 import { intersection } from './helpers';
 import { dispatchAuth } from './auth/dispatcher';
 import { allowAccess, allowPublish, allowUnpublish } from './auth/acl';
+import { createAuthRouter } from './middleware/router';
 
-export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
+export default class AuthCustomPlugin implements IPluginAuth<AzureConfig>, IPluginMiddleware<AzureConfig> {
   public logger: Logger;
   public api: AzureAPI;
+  private readonly config: AzureConfig;
   private readonly ciMode: boolean;
 
   public constructor(config: AzureConfig, options: PluginOptions<AzureConfig>) {
     this.logger = options.logger;
+    this.config = config;
 
     const missing = (['tenant', 'client_id', 'client_secret'] as const).filter(
       (key) => !config[key] || config[key].trim() === ''
@@ -104,6 +109,11 @@ export default class AuthCustomPlugin implements IPluginAuth<AzureConfig> {
         cb(getUnauthorized('bad username/password, access denied'), false);
       }
     })();
+  }
+
+  public register_middlewares(app: Application, _auth: unknown, _storage: unknown): void {
+    const router = createAuthRouter(this.config, this.api, this.applyGroupPolicy.bind(this), this.logger);
+    app.use('/-/auth', router);
   }
 
   private applyGroupPolicy(userGroups: string[]): { groups: string[] } | null {
