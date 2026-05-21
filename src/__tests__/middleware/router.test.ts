@@ -70,18 +70,19 @@ beforeEach(() => {
 });
 
 describe('GET /-/auth/azure', () => {
-  it('returns 200 and response body contains Azure AD authorize URL hostname', async () => {
+  it('redirects to Azure AD authorize URL with 302', async () => {
     const app = makeApp();
     const res = await request(app).get('/-/auth/azure');
-    expect(res.status).toBe(200);
-    expect(res.text).toContain('login.microsoftonline.com');
+    expect(res.status).toBe(302);
+    expect(res.headers['location']).toContain('login.microsoftonline.com');
   });
 
-  it('sets Content-Security-Policy header containing default-src none', async () => {
+  it('redirect location contains required OAuth parameters', async () => {
     const app = makeApp();
     const res = await request(app).get('/-/auth/azure');
-    expect(res.headers['content-security-policy']).toBeDefined();
-    expect(res.headers['content-security-policy']).toContain("default-src 'none'");
+    const location = res.headers['location'];
+    expect(location).toContain('response_type=code');
+    expect(location).toContain('code_challenge_method=S256');
   });
 
   it('returns 500 error page when redirect_uri is not configured', async () => {
@@ -110,6 +111,15 @@ describe('GET /-/auth/azure/callback', () => {
       'test-code-verifier',
       mockConfig.redirect_uri
     );
+  });
+
+  it('sets Cache-Control: no-store on successful token response', async () => {
+    const state = createState('verifier-cache');
+    const app = makeApp();
+    const res = await request(app)
+      .get(`/-/auth/azure/callback?state=${encodeURIComponent(state)}&code=authcode789`);
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('no-store');
   });
 
   it('returns 400 for unknown or expired state', async () => {

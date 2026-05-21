@@ -153,6 +153,13 @@ describe('AuthCustomPlugin constructor', () => {
         'verdaccio-azure-ad-login: redirect_uri is required in the middlewares config section'
       );
     });
+
+    it('throws when redirect_uri is not a valid URL', () => {
+      const bad = { ...middlewareConfig, redirect_uri: 'not-a-url' } as AzureConfig;
+      expect(() => new AuthCustomPlugin(bad, options)).toThrow(
+        'verdaccio-azure-ad-login: redirect_uri is not a valid URL'
+      );
+    });
   });
 });
 
