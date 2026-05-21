@@ -126,7 +126,12 @@ export function createAuthRouter(
 
     res.setHeader('Content-Security-Policy', CSP_HEADER);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.status(200).send(renderResultPage(tokenResponse.access_token, npmCmd));
+    res.status(200).send(renderResultPage(
+      tokenResponse.access_token,
+      npmCmd,
+      tokenResponse.id_token,
+      tokenResponse.expires_in
+    ));
   });
 
   return router;
