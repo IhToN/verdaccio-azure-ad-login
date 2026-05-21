@@ -10,7 +10,7 @@
     "types/"
   ],
   "engines": {
-    "node": ">=10"
+    "node": ">=16"
   },
   "dependencies": {
     "@verdaccio/commons-api": "^9.7.1",
