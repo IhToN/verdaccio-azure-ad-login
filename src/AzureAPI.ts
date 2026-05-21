@@ -1,5 +1,4 @@
 import { createHash } from 'crypto';
-import querystring from 'querystring';
 
 import axios from 'axios';
 
@@ -72,7 +71,7 @@ export default class AzureAPI {
     const options = {
       method: 'POST',
       headers,
-      data: querystring.stringify(data),
+      data: new URLSearchParams(data).toString(),
     } as const;
 
     try {
@@ -81,6 +80,34 @@ export default class AzureAPI {
       if (axios.isAxiosError(error)) {
         const errorMsg = error.response?.data?.error_description || error.message || 'Unknown';
         throw new Error('Failed requesting Azure AD access token: ' + errorMsg, { cause: error });
+      }
+      throw error;
+    }
+  }
+
+  public async requestAuthCodeToken(
+    code: string,
+    codeVerifier: string,
+    redirectUri: string
+  ): Promise<AzureOAuth> {
+    const url = this.apiUrl + TOKEN_ENDPOINT;
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    const data = {
+      client_id: this.client_id,
+      client_secret: this.client_secret,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+      code_verifier: codeVerifier,
+      scope: 'openid profile User.Read',
+    };
+    const options = { method: 'POST', headers, data: new URLSearchParams(data).toString() } as const;
+    try {
+      return await axios(url, options).then((res) => res.data);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data?.error_description || error.message || 'Unknown';
+        throw new Error('Failed exchanging authorization code for token: ' + errorMsg, { cause: error });
       }
       throw error;
     }

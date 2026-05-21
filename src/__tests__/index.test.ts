@@ -91,13 +91,28 @@ describe('AuthCustomPlugin constructor', () => {
   it('throws when a required config field is missing', () => {
     const bad = { ...config, tenant: '' } as AzureConfig;
     expect(() => new AuthCustomPlugin(bad, options)).toThrow(
-      'verdaccio-azure-ad-login: Missing required config fields: tenant'
+      'verdaccio-azure-ad-login: Missing required auth config fields: tenant'
     );
   });
 
   it('throws listing all missing fields when multiple required fields absent', () => {
     const bad = { ...config, tenant: '', client_id: '' } as AzureConfig;
     expect(() => new AuthCustomPlugin(bad, options)).toThrow('tenant');
+  });
+
+  it('throws when auth_mode is an unrecognised value', () => {
+    const bad = { ...config, auth_mode: 'magic' } as unknown as AzureConfig;
+    expect(() => new AuthCustomPlugin(bad, options)).toThrow(
+      "verdaccio-azure-ad-login: Unknown auth_mode 'magic'; expected 'ropc', 'token', or 'auto'"
+    );
+  });
+
+  it('emits logger.warn when auth_mode is auto and organization_domain is empty', () => {
+    new AuthCustomPlugin({ ...config, auth_mode: 'auto', organization_domain: '' } as AzureConfig, options);
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      {},
+      expect.stringContaining('organization_domain')
+    );
   });
 
   it('throws when ci_mode: true and auth_mode: token are both set (5-02-04)', () => {
@@ -112,6 +127,39 @@ describe('AuthCustomPlugin constructor', () => {
     expect(() => new AuthCustomPlugin(bad, options)).toThrow(
       'ci_mode is mutually exclusive with auth_mode: token and auth_mode: auto'
     );
+  });
+
+  describe('middleware instance (enabled: true)', () => {
+    const middlewareConfig = {
+      ...config,
+      enabled: true,
+      redirect_uri: 'http://localhost:4873/-/auth/azure/callback',
+    } as AzureConfig;
+
+    it('creates plugin without error when all required fields are present', () => {
+      expect(() => new AuthCustomPlugin(middlewareConfig, options)).not.toThrow();
+    });
+
+    it('throws when a required credential field is missing', () => {
+      const bad = { ...middlewareConfig, tenant: '' } as AzureConfig;
+      expect(() => new AuthCustomPlugin(bad, options)).toThrow(
+        'verdaccio-azure-ad-login: Missing required middlewares config fields: tenant'
+      );
+    });
+
+    it('throws when redirect_uri is absent', () => {
+      const bad = { ...middlewareConfig, redirect_uri: '' } as AzureConfig;
+      expect(() => new AuthCustomPlugin(bad, options)).toThrow(
+        'verdaccio-azure-ad-login: redirect_uri is required in the middlewares config section'
+      );
+    });
+
+    it('throws when redirect_uri is not a valid URL', () => {
+      const bad = { ...middlewareConfig, redirect_uri: 'not-a-url' } as AzureConfig;
+      expect(() => new AuthCustomPlugin(bad, options)).toThrow(
+        'verdaccio-azure-ad-login: redirect_uri is not a valid URL'
+      );
+    });
   });
 });
 

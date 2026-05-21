@@ -6,7 +6,13 @@ import verdaccioConfig from '@verdaccio/eslint-config';
 import { globalIgnores } from 'eslint/config';
 
 export default [
-  // Ignore root re-export shim: not included in tsconfig, not type-checked source.
-  globalIgnores(['index.ts']),
+  globalIgnores(['.claude/', 'index.ts']),
   ...verdaccioConfig,
+  // Root-level CommonJS infra files (jest config) use require()
+  {
+    files: ['*.js'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
 ];
