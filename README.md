@@ -60,6 +60,55 @@ User example email: `own_email@organization.com`\
 Local part: `own_email`\
 The user will be able to log in using `own_email` as the npm username.
 
+## Browser Login Setup
+
+The plugin ships with a browser-based Azure AD login UI. Users visit `/-/auth/azure`, sign in via
+Azure AD, and receive a page showing their access token and the exact `npm config set` command to
+authenticate their npm client.
+
+### 1 — Verdaccio configuration
+
+Add `azure-ad-login` under `middlewares:` and add `redirect_uri` to the `auth:` block:
+
+```yaml
+auth:
+  azure-ad-login:
+    tenant: "your-tenant-id"
+    client_id: "your-client-id"
+    client_secret: "your-client-secret"
+    redirect_uri: "https://your.registry.local/-/auth/azure/callback"
+    # Recommended for browser login — see note below
+    auth_mode: "token"
+
+middlewares:
+  azure-ad-login:
+    enabled: true
+```
+
+### 2 — Azure AD app registration
+
+In the Azure portal, open your app registration and add the callback URL as a **Web** redirect URI:
+
+```
+https://your.registry.local/-/auth/azure/callback
+```
+
+The application needs the following Microsoft Graph **delegated** permissions:
+- `openid`, `profile`, `User.Read` (for browser login)
+- `GroupMember.Read.All` or `Group.Read.All` if `allow_groups` is configured (requires admin consent)
+
+### 3 — How it works
+
+1. User visits `https://your.registry.local/-/auth/azure`
+2. Browser redirects to Azure AD login with PKCE parameters
+3. After sign-in, Azure AD redirects back to `/-/auth/azure/callback`
+4. The plugin validates the CSRF state, exchanges the code for tokens, checks group membership, and renders a result page
+5. User copies the `npm config set` command and runs it in their terminal
+
+> **auth_mode requirement:** The access token issued by the browser flow is an Azure AD bearer token.
+> For `npm install` and `npm publish` to work after browser login, `auth_mode` must be set to `"token"`
+> or `"auto"` in the `auth:` config block. The default `"ropc"` mode will not accept browser-issued tokens.
+
 ## Authentication Modes
 
 | Mode | `auth_mode` value | How it works |
