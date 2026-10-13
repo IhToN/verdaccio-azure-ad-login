@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@verdaccio/commons-api": "^9.7.1",
-    "axios": "^1.18.1"
+    "axios": "^1.20.0"
   },
   "peerDependencies": {
     "express": ">=4.0.0"
